@@ -1,0 +1,8 @@
+{
+  "name": "NewsletterAI Infrastructure",
+  "description": "Une plateforme SaaS complète pour gérer vos marques, générer des idées de newsletters par IA et planifier vos contenus avec un design minimaliste et professionnel.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
