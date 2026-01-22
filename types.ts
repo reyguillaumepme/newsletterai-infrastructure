@@ -53,8 +53,9 @@ export interface Brand {
   reference_content?: string;
   newsletter_strategy?: string; // Stocké sous forme de JSON stringifié (tone, frequency, pillars)
   writing_framework?: string;
-  sender_name?: string;  
-  sender_email?: string; 
+  sender_name?: string;
+  sender_email?: string;
+  footer_template?: string; // Template HTML du footer par défaut pour cette marque
   brevo_list_id?: number; // ID de la liste Brevo associée
   brevo_sender_id?: number; // ID du sender Brevo associé
 }
@@ -81,6 +82,7 @@ export interface Newsletter {
   created_at: string;
   generated_content?: string;
   footer_content?: string;
+  show_footer_logo?: boolean;
 }
 
 export interface Idea {

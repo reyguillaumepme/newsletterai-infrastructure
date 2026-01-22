@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Send, 
-  Calendar, 
-  MoreVertical, 
-  Image as ImageIcon, 
-  FileText, 
-  Trash2, 
+import {
+  ArrowLeft,
+  Plus,
+  Send,
+  Calendar,
+  MoreVertical,
+  Image as ImageIcon,
+  FileText,
+  Trash2,
   Loader2,
   Briefcase,
   X,
@@ -78,14 +78,14 @@ const NewsletterDetail: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showSendTestModal, setShowSendTestModal] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('desktop');
-  
+
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showNoContactsModal, setShowNoContactsModal] = useState(false);
   const [publishRecipients, setPublishRecipients] = useState<Contact[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
-  const [publishReport, setPublishReport] = useState<{success: number, failed: number} | null>(null);
-  
+  const [publishReport, setPublishReport] = useState<{ success: number, failed: number } | null>(null);
+
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [isGeneratingHook, setIsGeneratingHook] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,11 +93,11 @@ const NewsletterDetail: React.FC = () => {
   const [testSuccess, setTestSuccess] = useState(false);
   const [testError, setTestError] = useState<string | null>(null);
   const [testEmail, setTestEmail] = useState(currentUser?.email || '');
-  
+
   const [isSavingOrder, setIsSavingOrder] = useState(false);
   const [orderSaved, setOrderSaved] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  
+
   const [scheduleData, setScheduleData] = useState({ date: '', time: '' });
   const [hookHtmlMode, setHookHtmlMode] = useState(false);
   const [hookValue, setHookValue] = useState('');
@@ -145,7 +145,11 @@ const NewsletterDetail: React.FC = () => {
               setBrand(bData);
               if (nlData.footer_content) {
                 setFooterValue(nlData.footer_content);
+              } else if (bData?.footer_template) {
+                // Utiliser le template de la marque si disponible
+                setFooterValue(bData.footer_template);
               } else if (bData) {
+                // Sinon générer un footer par défaut
                 setFooterValue(generateDefaultFooter(bData.brand_name));
               }
             });
@@ -256,7 +260,7 @@ const NewsletterDetail: React.FC = () => {
     const primaryColor = "#FFD54F";
     const brandLogo = brand?.logo_url || "";
     const brandName = brand?.brand_name || "NewsletterAI";
-    
+
     let ctaSectionHtml = "";
     if (brand?.cta_config) {
       try {
@@ -267,7 +271,7 @@ const NewsletterDetail: React.FC = () => {
             <a href="${cta.url}" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 16px;">${cta.label}</a>
           </div>
         `).join("");
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const formatContent = (html: string) => {
@@ -285,12 +289,18 @@ const NewsletterDetail: React.FC = () => {
         <style>
           * { box-sizing: border-box; }
           body { margin: 0; padding: 0; overflow-x: hidden; width: 100%; font-family: 'Inter', sans-serif, Arial; background-color: #f8fafc; }
-          p { margin: 0 0 1.2em 0; line-height: 1.6; text-align: left; }
+          p { margin: 0 0 1.2em 0; line-height: 1.6; }
+          .ql-align-center { text-align: center !important; }
+          .ql-align-right { text-align: right !important; }
+          .ql-align-justify { text-align: justify !important; }
+          .content-area .ql-size-small { font-size: 13px !important; }
+          .content-area .ql-size-large { font-size: 20px !important; }
           .content-area .ql-size-huge { font-size: 32px !important; line-height: 1.2 !important; font-weight: 800 !important; }
+          .footer-area p { margin-bottom: 0.5em; }
         </style>
       </head>
       <body style="padding: 20px; margin:0;">
-      <div style="max-width: 750px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; width: 100%;">
+      <div style="max-width: 750px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
         <div style="padding: 40px; text-align: center; border-bottom: 4px solid ${primaryColor};">
           ${brandLogo ? `<img src="${brandLogo}" height="60" style="margin-bottom: 25px;" alt="${brandName}" />` : ''}
           <h1 style="margin: 0; font-size: 28px; color: #0f172a; font-weight: 800;">${newsletter.subject}</h1>
@@ -308,10 +318,13 @@ const NewsletterDetail: React.FC = () => {
           </div>
         </div>`).join('')}
         ${ctaSectionHtml}
-        <div style="padding: 60px 40px; text-align: center; background-color: #ffffff; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 14px;">
-          <div class="content-area">
-            ${formatContent(footerValue || generateDefaultFooter(brandName))}
-          </div>
+        <div class="footer-area" style="padding: 60px 40px; text-align: center; background-color: #ffffff; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 15px;">
+          ${newsletter.show_footer_logo && brandLogo ? `
+            <div style="margin-bottom: 30px; opacity: 0.8;">
+              <img src="${brandLogo}" height="35" alt="${brandName}" style="filter: grayscale(100%);" />
+            </div>
+          ` : ''}
+          ${footerValue || generateDefaultFooter(brandName)}
         </div>
       </div></body></html>`;
   };
@@ -328,10 +341,10 @@ const NewsletterDetail: React.FC = () => {
         <div className="flex items-center gap-4 flex-1">
           <button onClick={() => startTransition(() => navigate('/newsletters'))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>
           <div className="flex-1 min-w-0">
-            <input 
-              type="text" 
-              value={newsletter.subject} 
-              onChange={e => setNewsletter(prev => prev ? {...prev, subject: e.target.value} : null)}
+            <input
+              type="text"
+              value={newsletter.subject}
+              onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
               onBlur={() => handleSaveNewsletter({ subject: newsletter.subject })}
               className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
             />
@@ -345,16 +358,16 @@ const NewsletterDetail: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[300px]">
-             <div className="p-6 pb-4 flex items-center justify-between border-b border-gray-50 bg-white">
-                <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Quote size={20} /></div>
-                   <h3 className="text-lg font-black uppercase">Texte d'accroche</h3>
-                </div>
-                <button onClick={handleGenerateHook} disabled={isGeneratingHook || ideas.length === 0} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-gray-200">{isGeneratingHook ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} fill="currentColor" />} Générer par IA</button>
-             </div>
-             <div className="relative hook-editor flex-grow">
-                <ReactQuill theme="snow" value={hookValue} onChange={setHookValue} onBlur={() => handleSaveNewsletter({ generated_content: hookValue })} modules={QUILL_MODULES} />
-             </div>
+            <div className="p-6 pb-4 flex items-center justify-between border-b border-gray-50 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Quote size={20} /></div>
+                <h3 className="text-lg font-black uppercase">Texte d'accroche</h3>
+              </div>
+              <button onClick={handleGenerateHook} disabled={isGeneratingHook || ideas.length === 0} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-gray-200">{isGeneratingHook ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} fill="currentColor" />} Générer par IA</button>
+            </div>
+            <div className="relative hook-editor flex-grow">
+              <ReactQuill theme="snow" value={hookValue} onChange={setHookValue} onBlur={() => handleSaveNewsletter({ generated_content: hookValue })} modules={QUILL_MODULES} />
+            </div>
           </div>
 
           <div className="space-y-4 relative">
@@ -373,6 +386,35 @@ const NewsletterDetail: React.FC = () => {
               <Plus size={22} /><span className="font-black text-[9px] uppercase tracking-widest">Ajouter un bloc</span>
             </button>
           </div>
+
+          {/* Bloc d'édition du footer */}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[300px]">
+            <div className="p-6 pb-4 flex items-center justify-between border-b border-gray-50 bg-white">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-black uppercase">Footer Newsletter</h3>
+              </div>
+              <button
+                onClick={() => {
+                  if (!newsletter) return;
+                  const newVal = !newsletter.show_footer_logo;
+                  handleSaveNewsletter({ show_footer_logo: newVal });
+                }}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${newsletter?.show_footer_logo ? 'bg-primary/20 text-primary border-2 border-primary/20' : 'bg-gray-50 text-gray-400 border-2 border-gray-100'
+                  }`}
+              >
+                <ImageIcon size={14} /> Logo Footer: {newsletter?.show_footer_logo ? 'Activé' : 'Désactivé'}
+              </button>
+            </div>
+            <div className="relative footer-editor flex-grow">
+              <ReactQuill
+                theme="snow"
+                value={footerValue}
+                onChange={setFooterValue}
+                onBlur={() => handleSaveNewsletter({ footer_content: footerValue })}
+                modules={QUILL_MODULES}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -383,6 +425,7 @@ const NewsletterDetail: React.FC = () => {
               {ideas.map((i, idx) => (
                 <div key={i.id} className="flex items-center gap-3 p-3 bg-white border border-gray-50 rounded-xl shadow-sm"><span className="w-5 h-5 bg-primary text-gray-900 rounded-full flex items-center justify-center text-[9px] font-black shrink-0">{idx + 1}</span><span className="truncate text-[11px] font-bold text-gray-600">{i.title}</span></div>
               ))}
+              <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-50 mt-2"><Copyright size={12} className="text-primary" /><span className="text-[11px] font-bold text-gray-400">Footer</span></div>
             </div>
           </div>
         </div>
@@ -390,17 +433,34 @@ const NewsletterDetail: React.FC = () => {
 
       {showPreviewModal && (
         <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-2xl z-[500] flex items-center justify-center p-4 overflow-hidden">
-           <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
-              <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
-                 <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
-                 <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl"><X size={24}/></button>
-              </div>
-              <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
-                <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
-                  <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
+          <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
+            <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
+              <div className="flex items-center gap-8">
+                <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Monitor size={14} /> Desktop</button>
+                  <button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Smartphone size={14} /> Mobile</button>
                 </div>
               </div>
-           </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setShowPreviewModal(false);
+                    setShowSendTestModal(true);
+                  }}
+                  className="px-6 py-3 bg-primary text-gray-950 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                >
+                  <SendHorizontal size={16} /> Envoyer un test
+                </button>
+                <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200 transition-all"><X size={24} /></button>
+              </div>
+            </div>
+            <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
+              <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
+                <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -408,21 +468,21 @@ const NewsletterDetail: React.FC = () => {
         <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
             <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-               <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
-               <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
+              <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
+              <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
             </div>
             <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-3">
               {isLoadingPicker ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-primary" size={48} /></div> : availableIdeas.length > 0 ? availableIdeas.map(idea => (
-                  <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
-                     <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
-                        {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
-                     </div>
-                     <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
-                     </div>
-                     <Plus size={20} className="text-gray-200" />
+                <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
+                  <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
+                    {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
                   </div>
-                )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
+                  </div>
+                  <Plus size={20} className="text-gray-200" />
+                </div>
+              )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
             </div>
           </div>
         </div>
