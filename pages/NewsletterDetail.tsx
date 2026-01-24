@@ -31,7 +31,6 @@ import {
   Copy,
   MailCheck,
   SendHorizontal,
-  TriangleAlert,
   LayoutDashboard,
   ExternalLink,
   AlignLeft,
@@ -85,6 +84,14 @@ const NewsletterDetail: React.FC = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishReport, setPublishReport] = useState<{ success: number, failed: number } | null>(null);
+
+  // Contact management for publish
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [displayedContactsCount, setDisplayedContactsCount] = useState(10);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [isGeneratingHook, setIsGeneratingHook] = useState(false);
@@ -255,6 +262,124 @@ const NewsletterDetail: React.FC = () => {
     });
   };
 
+  const validateNewsletter = (): string[] => {
+    const errors: string[] = [];
+
+    if (!newsletter?.subject || newsletter.subject.trim() === '') {
+      errors.push('Le sujet de la newsletter est requis');
+    }
+
+    if (!hookValue || hookValue.trim() === '' || hookValue === '<p><br></p>') {
+      errors.push('Le texte d\'accroche est requis');
+    }
+
+    if (ideas.length === 0) {
+      errors.push('Au moins un article est requis');
+    }
+
+    if (!footerValue || footerValue.trim() === '') {
+      errors.push('Le footer est requis');
+    }
+
+    return errors;
+  };
+
+  const loadContacts = async () => {
+    if (!newsletter?.brand_id) return;
+
+    setIsLoadingContacts(true);
+    try {
+      const allContacts = await databaseService.fetchContacts(newsletter.brand_id);
+      setContacts(allContacts);
+
+      // Auto-select subscribed contacts
+      const subscribed = allContacts.filter(c => c.status === 'subscribed');
+      setSelectedContacts(subscribed);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  };
+
+  const handleOpenPublishModal = () => {
+    const errors = validateNewsletter();
+    setValidationErrors(errors);
+
+    if (errors.length > 0) {
+      return; // Don't open modal if validation fails
+    }
+
+    setShowPublishModal(true);
+    loadContacts();
+  };
+
+  const handleToggleContactSelection = (contact: Contact) => {
+    setSelectedContacts(prev => {
+      const isSelected = prev.some(c => c.id === contact.id);
+      if (isSelected) {
+        return prev.filter(c => c.id !== contact.id);
+      } else {
+        return [...prev, contact];
+      }
+    });
+  };
+
+  const handleToggleContactStatus = async (contactId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'subscribed' ? 'unsubscribed' : 'subscribed';
+
+    try {
+      await databaseService.updateContact(contactId, { status: newStatus });
+
+      // Update local state
+      setContacts(prev => prev.map(c =>
+        c.id === contactId ? { ...c, status: newStatus as any } : c
+      ));
+
+      // If changing to unsubscribed, remove from selected
+      if (newStatus === 'unsubscribed') {
+        setSelectedContacts(prev => prev.filter(c => c.id !== contactId));
+      }
+    } catch (error) {
+      console.error('Error updating contact status:', error);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!newsletter || selectedContacts.length === 0) return;
+
+    setIsPublishing(true);
+    try {
+      const result = await mailService.sendNewsletter({
+        recipients: selectedContacts,
+        subject: newsletter.subject,
+        htmlContent: renderNewsletterHtml(),
+        brandName: brand?.brand_name || 'NewsletterAI',
+        brandId: newsletter.brand_id
+      });
+
+      // Update newsletter status
+      await databaseService.updateNewsletter(newsletter.id, {
+        status: 'sent'
+      });
+
+      setNewsletter(prev => prev ? { ...prev, status: 'sent' } : null);
+      setPublishReport({ success: result.success.length, failed: result.failed.length });
+      setPublishSuccess(true);
+
+      setTimeout(() => {
+        setShowPublishModal(false);
+        setPublishSuccess(false);
+        setPublishReport(null);
+      }, 3000);
+    } catch (error: any) {
+      console.error('Error publishing newsletter:', error);
+      alert('Erreur lors de l\'envoi: ' + (error.message || 'Erreur inconnue'));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const renderNewsletterHtml = () => {
     if (!newsletter) return "";
     const primaryColor = "#FFD54F";
@@ -349,9 +474,47 @@ const NewsletterDetail: React.FC = () => {
               className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
             />
           </div>
+          {newsletter && (
+            <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase flex items-center gap-2 ${newsletter.status === 'sent' ? 'bg-green-100 text-green-700' :
+              newsletter.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                'bg-gray-100 text-gray-600'
+              }`}>
+              {newsletter.status === 'sent' ? <CheckCircle2 size={14} /> :
+                newsletter.status === 'scheduled' ? <Clock size={14} /> :
+                  <FileText size={14} />}
+              {newsletter.status === 'sent' ? 'Envoyée' :
+                newsletter.status === 'scheduled' ? 'Planifiée' :
+                  'Brouillon'}
+            </div>
+          )}
         </div>
         <div className="flex gap-3">
           <button onClick={() => startTransition(() => setShowPreviewModal(true))} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all shadow-gray-200"><Eye size={18} /> Aperçu Final</button>
+          <div className="relative group">
+            <button
+              onClick={handleOpenPublishModal}
+              disabled={newsletter?.status === 'sent'}
+              className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase flex items-center gap-2 transition-all shadow-lg ${newsletter?.status === 'sent'
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : validationErrors.length > 0
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-primary text-gray-950 hover:scale-105 shadow-primary/20'
+                }`}
+            >
+              <Rocket size={18} />
+              {newsletter?.status === 'sent' ? 'Envoyée' : 'Publier'}
+            </button>
+            {validationErrors.length > 0 && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white border-2 border-orange-200 rounded-2xl p-4 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <p className="text-xs font-bold text-orange-900 mb-2">⚠️ Validation requise :</p>
+                <ul className="text-xs text-orange-700 space-y-1">
+                  {validationErrors.map((error, idx) => (
+                    <li key={idx}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -496,6 +659,171 @@ const NewsletterDetail: React.FC = () => {
               <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
+          </div>
+        </div>
+      )}
+
+      {showPublishModal && (
+        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+            {/* Header */}
+            <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-primary/5 to-transparent">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <Rocket size={28} className="text-primary" />
+                  Publier la Newsletter
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowPublishModal(false);
+                    setSearchQuery('');
+                    setDisplayedContactsCount(10);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500">
+                {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} sélectionné{selectedContacts.length > 1 ? 's' : ''} / {contacts.filter(c => c.status === 'subscribed').length} abonné{contacts.filter(c => c.status === 'subscribed').length > 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-6 border-b border-gray-50">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher par email, prénom, nom..."
+                  className="w-full px-4 py-3 pl-10 border-2 border-gray-100 rounded-2xl focus:border-primary focus:outline-none transition-all"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Users size={18} />
+                </div>
+              </div>
+            </div>
+
+            {/* Contact List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-2">
+              {isLoadingContacts ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <Loader2 className="animate-spin text-primary" size={48} />
+                  <p className="text-sm text-gray-500">Chargement des contacts...</p>
+                </div>
+              ) : (() => {
+                const filteredContacts = contacts.filter(contact => {
+                  const query = searchQuery.toLowerCase();
+                  return (
+                    contact.email.toLowerCase().includes(query) ||
+                    contact.first_name?.toLowerCase().includes(query) ||
+                    contact.last_name?.toLowerCase().includes(query)
+                  );
+                });
+                const displayedContacts = filteredContacts.slice(0, displayedContactsCount);
+
+                return displayedContacts.length > 0 ? (
+                  <>
+                    {displayedContacts.map(contact => {
+                      const isSelected = selectedContacts.some(c => c.id === contact.id);
+                      return (
+                        <div
+                          key={contact.id}
+                          className="p-4 border border-gray-100 rounded-2xl hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center gap-4"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleContactSelection(contact)}
+                            disabled={contact.status !== 'subscribed'}
+                            className="w-5 h-5 rounded border-2 border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">{contact.email}</p>
+                            {(contact.first_name || contact.last_name) && (
+                              <p className="text-xs text-gray-500 truncate">
+                                {contact.first_name} {contact.last_name}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleToggleContactStatus(contact.id, contact.status)}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${contact.status === 'subscribed'
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                              }`}
+                          >
+                            {contact.status === 'subscribed' ? 'Abonné' : 'Désabonné'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {filteredContacts.length > displayedContactsCount && (
+                      <button
+                        onClick={() => setDisplayedContactsCount(prev => prev + 10)}
+                        className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:border-primary hover:text-primary transition-all text-sm font-bold"
+                      >
+                        Charger plus de contacts ({filteredContacts.length - displayedContactsCount} restants)
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-20">
+                    <UserX size={48} className="mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-400 font-bold">
+                      {searchQuery ? 'Aucun contact trouvé pour cette recherche' : 'Aucun contact disponible'}
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-50 bg-gray-50/50">
+              {publishSuccess ? (
+                <div className="p-4 bg-green-50 border-2 border-green-100 rounded-2xl flex items-center gap-3 mb-4">
+                  <CheckCircle2 className="text-green-500" size={24} />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-green-900">Newsletter publiée avec succès !</p>
+                    <p className="text-xs text-green-700">
+                      {publishReport?.success || 0} envoyé{(publishReport?.success || 0) > 1 ? 's' : ''}, {publishReport?.failed || 0} échec{(publishReport?.failed || 0) > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowPublishModal(false);
+                    setSearchQuery('');
+                    setDisplayedContactsCount(10);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                  disabled={isPublishing}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handlePublish}
+                  disabled={isPublishing || selectedContacts.length === 0 || publishSuccess}
+                  className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    <>
+                      <SendHorizontal size={18} />
+                      Envoyer Maintenant
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
