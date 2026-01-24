@@ -233,7 +233,7 @@ const NewsletterDetail: React.FC = () => {
     if (isDemo) { alert("IA inactive en démo."); return; }
     setIsGeneratingHook(true);
     try {
-      const hook = await generateNewsletterHook(newsletter.subject, ideas, brand || undefined);
+      const hook = await generateNewsletterHook(newsletter?.subject || '', ideas, brand || undefined);
       const hookHtml = `<p>${hook}</p>`;
       startTransition(() => {
         setHookValue(hookHtml);
@@ -245,9 +245,8 @@ const NewsletterDetail: React.FC = () => {
   };
 
   const handleAddIdeaToNewsletter = async (idea: Idea) => {
-    // Enforce maximum of 5 articles
+    // Enforce maximum of 5 articles (handled by disabled button now)
     if (ideas.length >= 5) {
-      alert('Vous ne pouvez pas ajouter plus de 5 articles à une newsletter.');
       return;
     }
     const newIdx = ideas.length;
@@ -423,7 +422,7 @@ const NewsletterDetail: React.FC = () => {
     try {
       const result = await mailService.sendNewsletter({
         recipients: selectedContacts,
-        subject: newsletter.subject,
+        subject: newsletter?.subject || '',
         htmlContent: renderNewsletterHtml(),
         brandName: brand?.brand_name || 'NewsletterAI',
         brandId: newsletter.brand_id
@@ -499,7 +498,7 @@ const NewsletterDetail: React.FC = () => {
       <div style="max-width: 750px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
         <div style="padding: 40px; text-align: center; border-bottom: 4px solid ${primaryColor};">
           ${brandLogo ? `<img src="${brandLogo}" height="60" style="margin-bottom: 25px;" alt="${brandName}" />` : ''}
-          <h1 style="margin: 0; font-size: 28px; color: #0f172a; font-weight: 800;">${newsletter.subject}</h1>
+          <h1 style="margin: 0; font-size: 28px; color: #0f172a; font-weight: 800;">${newsletter?.subject || 'Newsletter'}</h1>
         </div>
         <div style="padding: 40px; background-color: #ffffff; text-align: left;">
            <div class="content-area" style="color: #334155; font-size: 16px;">
@@ -539,9 +538,9 @@ const NewsletterDetail: React.FC = () => {
           <div className="flex-1 min-w-0">
             <input
               type="text"
-              value={newsletter.subject}
+              value={newsletter?.subject || ''}
               onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
-              onBlur={() => handleSaveNewsletter({ subject: newsletter.subject })}
+              onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
               className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
             />
           </div>
@@ -611,12 +610,6 @@ const NewsletterDetail: React.FC = () => {
                 Ordre sauvegardé !
               </div>
             )}
-            {ideas.length >= 5 && (
-              <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-3">
-                <AlertCircle className="text-orange-500" size={20} />
-                <p className="text-sm font-bold text-orange-900">Maximum 5 blocs atteint</p>
-              </div>
-            )}
             {ideas.map((idea, index) => (
               <div
                 key={idea.id}
@@ -634,11 +627,10 @@ const NewsletterDetail: React.FC = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm('Voulez-vous vraiment supprimer cet article ?')) {
-                      handleRemoveIdea(idea.id);
-                    }
+                    handleRemoveIdea(idea.id);
                   }}
                   className="absolute right-3 top-3 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 z-10"
+                  title="Supprimer cet article"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -651,8 +643,18 @@ const NewsletterDetail: React.FC = () => {
                 </div>
               </div>
             ))}
-            <button onClick={() => startTransition(() => setShowIdeaPicker(true))} className="w-full py-8 border-3 border-dashed border-gray-100 rounded-[2.5rem] text-gray-300 hover:border-primary/20 hover:text-primary transition-all flex flex-col items-center gap-3">
-              <Plus size={22} /><span className="font-black text-[9px] uppercase tracking-widest">Ajouter un bloc</span>
+            <button
+              onClick={() => startTransition(() => setShowIdeaPicker(true))}
+              disabled={ideas.length >= 5}
+              className={`w-full py-8 border-3 border-dashed rounded-[2.5rem] transition-all flex flex-col items-center gap-3 ${ideas.length >= 5
+                ? 'border-gray-50 text-gray-200 cursor-not-allowed bg-gray-50/50'
+                : 'border-gray-100 text-gray-300 hover:border-primary/20 hover:text-primary'
+                }`}
+            >
+              <Plus size={22} />
+              <span className="font-black text-[9px] uppercase tracking-widest">
+                {ideas.length >= 5 ? 'Maximum 5 blocs atteint' : 'Ajouter un bloc'}
+              </span>
             </button>
           </div>
 
