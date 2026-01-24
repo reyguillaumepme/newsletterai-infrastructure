@@ -67,7 +67,7 @@ export const databaseService = {
     try {
       const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
       const headers = await getHeaders(key, true);
-      const res = await fetch(`${baseUrl}/rest/v1/brands?select=count`, { 
+      const res = await fetch(`${baseUrl}/rest/v1/brands?select=count`, {
         headers,
         signal: AbortSignal.timeout(5000)
       });
@@ -80,49 +80,49 @@ export const databaseService = {
       const { key } = getSupabaseConfig();
       // Simulation d'un payload Webhook Supabase (INSERT)
       const payload = {
-          type: 'INSERT',
-          table: 'contacts',
-          schema: 'public',
-          record: {
-              email: 'test-admin@demo.com',
-              first_name: 'Test',
-              last_name: 'Admin',
-              brand_id: '00000000-0000-0000-0000-000000000000'
-          },
-          old_record: null
+        type: 'INSERT',
+        table: 'contacts',
+        schema: 'public',
+        record: {
+          email: 'test-admin@demo.com',
+          first_name: 'Test',
+          last_name: 'Admin',
+          brand_id: '00000000-0000-0000-0000-000000000000'
+        },
+        old_record: null
       };
 
       const response = await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify(payload)
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
-          return { success: true, message: "Succès ! La fonction a répondu correctement." };
+        return { success: true, message: "Succès ! La fonction a répondu correctement." };
       } else {
-          const text = await response.text();
-          
-          // Gestion spécifique erreur 401 JWT pour l'interface UI
-          if (response.status === 401) {
-            return { 
-              success: false, 
-              message: `⛔️ Erreur 401 (JWT Invalid).\n\nSupabase bloque l'accès public.\n\n👉 SOLUTION RAPIDE (Sans Terminal) :\n1. Allez dans votre Dashboard Supabase > Edge Functions\n2. Cliquez sur votre fonction\n3. Désactivez l'option "Enforce JWT Verification"` 
-            };
-          }
+        const text = await response.text();
 
-          return { success: false, message: `Erreur ${response.status}: ${text}` };
+        // Gestion spécifique erreur 401 JWT pour l'interface UI
+        if (response.status === 401) {
+          return {
+            success: false,
+            message: `⛔️ Erreur 401 (JWT Invalid).\n\nSupabase bloque l'accès public.\n\n👉 SOLUTION RAPIDE (Sans Terminal) :\n1. Allez dans votre Dashboard Supabase > Edge Functions\n2. Cliquez sur votre fonction\n3. Désactivez l'option "Enforce JWT Verification"`
+          };
+        }
+
+        return { success: false, message: `Erreur ${response.status}: ${text}` };
       }
     } catch (e: any) {
       // Détection spécifique erreur CORS
       if (e.message === 'Failed to fetch' || e.name === 'TypeError') {
-         return { 
-           success: false, 
-           message: "⛔️ Erreur CORS (Navigateur bloqué).\n\nLe navigateur ne reçoit pas les headers 'Access-Control-Allow-Origin'.\n\nVérifiez que votre code (index.ts) gère bien la méthode OPTIONS." 
-         };
+        return {
+          success: false,
+          message: "⛔️ Erreur CORS (Navigateur bloqué).\n\nLe navigateur ne reçoit pas les headers 'Access-Control-Allow-Origin'.\n\nVérifiez que votre code (index.ts) gère bien la méthode OPTIONS."
+        };
       }
       return { success: false, message: `Erreur réseau : ${e.message}` };
     }
@@ -322,14 +322,14 @@ export const databaseService = {
     const { url, key } = getSupabaseConfig();
     const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
     const headers = await getHeaders(key);
-    
+
     // On update en fonction du couple email + brand_id
     const res = await fetch(`${baseUrl}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}&brand_id=eq.${brandId}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ status: 'unsubscribed' })
     });
-    
+
     return res.ok;
   },
 
@@ -341,7 +341,8 @@ export const databaseService = {
     const user = authService.getCurrentUser();
     const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
     const headers = await getHeaders(key);
-    const res = await fetch(`${baseUrl}/rest/v1/newsletters?user_id=eq.${user?.id}&select=*&order=created_at.desc`, { headers });
+    // Join with brands table to get brand information
+    const res = await fetch(`${baseUrl}/rest/v1/newsletters?user_id=eq.${user?.id}&select=*,brands(brand_name,logo_url)&order=created_at.desc`, { headers });
     return res.ok ? await res.json() : [];
   },
 
@@ -512,6 +513,6 @@ export const databaseService = {
     try {
       const brand = await this.createBrand({ brand_name: "AI Trends Weekly", description: "Focus IA.", target_audience: "Entrepreneurs", editorial_tone: "Expert" });
       await this.createIdea({ brand_id: brand.id, title: "Gemini 3.0", content: "Capabilities analysis.", source: "YouTube", source_type: "youtube", order_index: 0 });
-    } catch (e) {}
+    } catch (e) { }
   }
 };
