@@ -2,12 +2,13 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { Plus, Search, ChevronDown, ChevronUp, Mail, Clock, CheckCircle2, FileText, Loader2, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { databaseService } from '../services/databaseService';
-import { Newsletter, Brand } from '../types';
+import { Newsletter, Brand, Idea } from '../types';
 
 const Newsletters: React.FC = () => {
   const navigate = useNavigate();
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [newsletterIdeas, setNewsletterIdeas] = useState<Record<string, Idea[]>>({});
   const [selectedBrandId, setSelectedBrandId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSentNewsletters, setShowSentNewsletters] = useState<boolean>(false);
@@ -23,6 +24,19 @@ const Newsletters: React.FC = () => {
       ]);
       setNewsletters(Array.isArray(newslettersData) ? newslettersData : []);
       setBrands(Array.isArray(brandsData) ? brandsData : []);
+
+      // Fetch ideas for each newsletter
+      if (Array.isArray(newslettersData) && newslettersData.length > 0) {
+        const ideasMap: Record<string, Idea[]> = {};
+        await Promise.all(
+          newslettersData.map(async (nl) => {
+            const ideas = await databaseService.fetchIdeasByNewsletter(nl.id);
+            ideasMap[nl.id] = Array.isArray(ideas) ? ideas : [];
+          })
+        );
+        setNewsletterIdeas(ideasMap);
+      }
+
       setIsLoading(false);
     };
     loadData();
@@ -92,12 +106,16 @@ const Newsletters: React.FC = () => {
   const NewsletterCard: React.FC<{
     newsletter: Newsletter;
     size: 'large' | 'medium' | 'small';
-  }> = ({ newsletter, size }) => {
+    ideas?: Idea[];
+  }> = ({ newsletter, size, ideas = [] }) => {
     const sizeClasses = {
       large: 'h-[300px] p-6',
       medium: 'h-[200px] p-5',
       small: 'h-[80px] p-4'
     };
+
+    const firstIdea = ideas.length > 0 ? ideas[0] : null;
+    const hasImage = firstIdea?.image_url;
 
     const StatusIcon = () => {
       switch (newsletter.status) {
@@ -116,6 +134,13 @@ const Newsletters: React.FC = () => {
           onClick={() => handleNavigate(newsletter.id)}
           className="bg-white border border-gray-100 rounded-2xl hover:border-primary/50 hover:shadow-md transition-all cursor-pointer flex items-center gap-4 p-4 group"
         >
+          {hasImage && (
+            <img
+              src={firstIdea.image_url}
+              alt=""
+              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+            />
+          )}
           <StatusIcon />
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">
@@ -133,8 +158,19 @@ const Newsletters: React.FC = () => {
     return (
       <div
         onClick={() => handleNavigate(newsletter.id)}
-        className={`bg-white border border-gray-100 rounded-3xl hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer flex flex-col ${sizeClasses[size]} group`}
+        className={`bg-white border border-gray-100 rounded-3xl hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer flex flex-col ${sizeClasses[size]} group overflow-hidden`}
       >
+        {hasImage && (
+          <div className="w-full h-32 mb-4 -mx-6 -mt-6 relative overflow-hidden">
+            <img
+              src={firstIdea.image_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80"></div>
+          </div>
+        )}
+
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-2">
             <StatusIcon />
@@ -160,7 +196,7 @@ const Newsletters: React.FC = () => {
               </p>
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Mail size={14} />
-                <span>Prêt à être envoyé</span>
+                <span>{ideas.length} article{ideas.length > 1 ? 's' : ''}</span>
               </div>
             </>
           )}
@@ -278,10 +314,10 @@ const Newsletters: React.FC = () => {
             >
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {groupedNewsletters.drafts.map(nl => (
-                  <NewsletterCard key={nl.id} newsletter={nl} size="large" />
+                  <NewsletterCard key={nl.id} newsletter={nl} size="large" ideas={newsletterIdeas[nl.id]} />
                 ))}
                 {groupedNewsletters.scheduled.map(nl => (
-                  <NewsletterCard key={nl.id} newsletter={nl} size="medium" />
+                  <NewsletterCard key={nl.id} newsletter={nl} size="medium" ideas={newsletterIdeas[nl.id]} />
                 ))}
               </div>
             </StatusSection>
@@ -296,7 +332,7 @@ const Newsletters: React.FC = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {groupedNewsletters.sent.map(nl => (
-                <NewsletterCard key={nl.id} newsletter={nl} size="small" />
+                <NewsletterCard key={nl.id} newsletter={nl} size="small" ideas={newsletterIdeas[nl.id]} />
               ))}
             </div>
           </StatusSection>
