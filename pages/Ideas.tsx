@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import ReactQuill from 'react-quill';
-import { 
-  Search, 
-  LayoutGrid, 
-  CheckCircle2, 
-  Loader2, 
-  Image as ImageIcon, 
-  Plus, 
-  X, 
-  Sparkles, 
-  Save, 
-  Wand2, 
-  Palette, 
-  Trash2, 
-  AlertTriangle, 
-  Zap, 
+import {
+  Search,
+  LayoutGrid,
+  CheckCircle2,
+  Loader2,
+  Image as ImageIcon,
+  Plus,
+  X,
+  Sparkles,
+  Save,
+  Wand2,
+  Palette,
+  Trash2,
+  AlertTriangle,
+  Zap,
   Monitor,
   Smartphone,
   Check,
@@ -22,7 +22,9 @@ import {
   Maximize2,
   Briefcase,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  FileText
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 import { authService, DEMO_USER_EMAIL } from '../services/authService';
@@ -74,7 +76,7 @@ const Ideas: React.FC = () => {
       const [iData, bData] = await Promise.all([databaseService.fetchIdeas(), databaseService.fetchBrands()]);
       setIdeas(iData || []);
       setBrands(bData || []);
-    } finally { 
+    } finally {
       setIsLoading(false);
     }
   };
@@ -158,9 +160,9 @@ const Ideas: React.FC = () => {
     if (!studioImagePreview || !selectedIdea) return;
     setIsSaving(true);
     try {
-      const updated = await databaseService.updateIdea(selectedIdea.id, { 
+      const updated = await databaseService.updateIdea(selectedIdea.id, {
         image_url: studioImagePreview,
-        image_prompt: studioPrompt 
+        image_prompt: studioPrompt
       });
       startTransition(() => {
         if (updated) setSelectedIdea(updated);
@@ -223,83 +225,172 @@ const Ideas: React.FC = () => {
         ))}
       </div>
 
+
       {selectedIdea && !showImageModal && (
         <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-6xl h-[85vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in duration-300">
-            <div className="w-full md:w-[420px] bg-gray-50 border-r border-gray-100 flex flex-col relative shrink-0">
-               <div className="relative h-1/2 w-full bg-gray-900 group overflow-hidden">
-                  {selectedIdea.image_url ? (
-                    <img src={selectedIdea.image_url} className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-700">
-                      <ImageIcon size={64} />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-4">
-                     <button 
-                       onClick={handleOpenStudio}
-                       className="w-full py-4 bg-primary text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-2 hover:-translate-y-1 transition-all active:scale-95"
-                     >
-                        <Wand2 size={16} /> Ouvrir Studio Visuel
-                     </button>
-                  </div>
-               </div>
-               <div className="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar">
-                  <div className="space-y-4">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Statistiques & Infos</label>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-1">
-                           <span className="text-[9px] text-gray-400 font-bold uppercase block">Source</span>
-                           <span className="text-[10px] font-black text-primary uppercase">{selectedIdea.source_type}</span>
-                        </div>
-                        <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-1">
-                           <span className="text-[9px] text-gray-400 font-bold uppercase block">Utilisé</span>
-                           <span className="text-[10px] font-black text-gray-900 uppercase">{selectedIdea.used ? 'Oui' : 'Non'}</span>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">IA Image Prompt</label>
-                     <div className="p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-inner">
-                        <p className="text-[11px] text-gray-500 font-medium italic leading-relaxed">
-                          {selectedIdea.image_prompt || "Le prompt visuel n'a pas encore été généré par l'IA."}
-                        </p>
-                     </div>
-                  </div>
-               </div>
-               <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 left-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl text-white transition-all"><X size={20} /></button>
+          <div className="bg-white w-full max-w-6xl max-h-[90vh] rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-300">
+
+            {/* Hero Image Section - Full Width */}
+            <div className="relative w-full h-64 bg-gray-900 overflow-hidden group">
+              {selectedIdea.image_url ? (
+                <img
+                  src={selectedIdea.image_url}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  alt={selectedIdea.title}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                  <ImageIcon size={80} className="text-gray-700" />
+                </div>
+              )}
+
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+              {/* Close Button - Top Right */}
+              <button
+                onClick={() => startTransition(() => setSelectedIdea(null))}
+                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl text-white transition-all shadow-xl border border-white/20 hover:scale-110"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Studio Button - Bottom Center */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+                <button
+                  onClick={handleOpenStudio}
+                  className="px-8 py-4 bg-primary text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl flex items-center gap-2 hover:-translate-y-1 transition-all active:scale-95"
+                >
+                  <Wand2 size={16} /> Ouvrir Studio Visuel
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden bg-white article-editor">
-               <div className="p-8 pb-4 flex items-center justify-between border-b border-gray-50 bg-white sticky top-0 z-20">
+            {/* Content Area - Sidebar + Editor */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+              {/* Sidebar - 30% */}
+              <div className="w-full md:w-[30%] lg:w-[350px] bg-gray-50 border-r border-gray-100 flex flex-col relative shrink-0 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 p-8 space-y-8">
+
+                  {/* Enriched Metadata */}
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Statistiques & Infos
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Source Card */}
+                      <div className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 bg-blue-500 rounded-lg">
+                            <FileText size={12} className="text-white" />
+                          </div>
+                          <span className="text-[9px] font-black text-blue-600 uppercase">Source</span>
+                        </div>
+                        <p className="text-sm font-black text-blue-700 capitalize">
+                          {selectedIdea.source_type}
+                        </p>
+                      </div>
+
+                      {/* Used Status Card */}
+                      <div className={`p-4 rounded-2xl border shadow-sm hover:shadow-md transition-all ${selectedIdea.used
+                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-100'
+                        : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-100'
+                        }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-1.5 rounded-lg ${selectedIdea.used ? 'bg-green-500' : 'bg-gray-400'}`}>
+                            {selectedIdea.used ? (
+                              <CheckCircle2 size={12} className="text-white" />
+                            ) : (
+                              <X size={12} className="text-white" />
+                            )}
+                          </div>
+                          <span className={`text-[9px] font-black uppercase ${selectedIdea.used ? 'text-green-600' : 'text-gray-500'
+                            }`}>
+                            Utilisé
+                          </span>
+                        </div>
+                        <p className={`text-sm font-black ${selectedIdea.used ? 'text-green-700' : 'text-gray-600'}`}>
+                          {selectedIdea.used ? 'Oui' : 'Non'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Prompt Card with Glassmorphism */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Prompt Visuel IA
+                    </label>
+
+                    <div className="relative p-6 rounded-3xl bg-gradient-to-br from-purple-50 via-white to-blue-50 border border-purple-100/50 shadow-xl overflow-hidden group">
+                      {/* Shimmer Effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                      <div className="relative flex items-start gap-4">
+                        {/* AI Icon with Gradient */}
+                        <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl shadow-lg shrink-0">
+                          <Sparkles className="text-white" size={20} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            {selectedIdea.image_prompt || "Le prompt visuel n'a pas encore été généré par l'IA."}
+                          </p>
+                        </div>
+
+                        {/* Copy Button */}
+                        {selectedIdea.image_prompt && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedIdea.image_prompt || '');
+                            }}
+                            className="p-2 hover:bg-white/80 rounded-xl transition-all shrink-0 group/copy"
+                            title="Copier le prompt"
+                          >
+                            <Copy size={16} className="text-gray-400 group-hover/copy:text-purple-600" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Editor Section - 70% */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-white article-editor">
+                <div className="p-8 pb-4 flex items-center justify-between border-b border-gray-50 bg-white sticky top-0 z-20">
                   <div className="flex-1 mr-6">
-                     <input 
-                       value={selectedIdea.title} 
-                       onChange={e => setSelectedIdea(prev => prev ? {...prev, title: e.target.value} : null)} 
-                       className="text-2xl font-black uppercase tracking-tighter w-full outline-none focus:text-primary transition-colors bg-transparent"
-                       placeholder="Titre de l'idée..."
-                     />
+                    <input
+                      value={selectedIdea.title}
+                      onChange={e => setSelectedIdea(prev => prev ? { ...prev, title: e.target.value } : null)}
+                      className="text-2xl font-black uppercase tracking-tighter w-full outline-none focus:text-primary transition-colors bg-transparent"
+                      placeholder="Titre de l'idée..."
+                    />
                   </div>
                   <button onClick={handleEnhanceWithAI} disabled={isAILoading} className="px-5 py-2.5 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all hover:bg-amber-100 border border-amber-100 shadow-sm active:scale-95 disabled:opacity-50">
                     {isAILoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Optimiser par IA
                   </button>
-               </div>
-               
-               <ReactQuill 
-                 theme="snow" 
-                 value={selectedIdea.content || ''} 
-                 onChange={content => setSelectedIdea(prev => prev ? {...prev, content} : null)} 
-                 modules={QUILL_MODULES} 
-                 className="flex-1 overflow-y-auto custom-scrollbar" 
-                 placeholder="Rédigez le contenu complet ici..."
-               />
+                </div>
 
-               <div className="p-8 border-t border-gray-50 flex gap-4 bg-gray-50/30">
+                <ReactQuill
+                  theme="snow"
+                  value={selectedIdea.content || ''}
+                  onChange={content => setSelectedIdea(prev => prev ? { ...prev, content } : null)}
+                  modules={QUILL_MODULES}
+                  className="flex-1 overflow-y-auto custom-scrollbar"
+                  placeholder="Rédigez le contenu complet ici..."
+                />
+
+                <div className="p-8 border-t border-gray-50 flex gap-4 bg-gray-50/30">
                   <button onClick={handleSaveIdea} disabled={isSaving} className="flex-1 py-4 bg-gray-950 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all hover:bg-black active:scale-95">
                     {isSaving ? <Loader2 className="animate-spin" /> : <Save size={18} />} Enregistrer le concept
                   </button>
-               </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -311,13 +402,13 @@ const Ideas: React.FC = () => {
           <div className="bg-white/5 border border-white/10 w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
             <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/5">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary rounded-2xl text-gray-900 shadow-lg shadow-primary/20"><Palette size={24}/></div>
+                <div className="p-3 bg-primary rounded-2xl text-gray-900 shadow-lg shadow-primary/20"><Palette size={24} /></div>
                 <div>
                   <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Studio Visuel IA</h3>
                   <p className="text-gray-500 text-xs font-medium uppercase tracking-widest">Powered by Gemini 2.5 Flash Image</p>
                 </div>
               </div>
-              <button onClick={() => startTransition(() => setShowImageModal(false))} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all"><X size={24}/></button>
+              <button onClick={() => startTransition(() => setShowImageModal(false))} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all"><X size={24} /></button>
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -326,9 +417,9 @@ const Ideas: React.FC = () => {
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Style Artistique</label>
                   <div className="grid grid-cols-1 gap-3">
                     {VISUAL_STYLES.map(style => (
-                      <button 
-                        key={style.id} 
-                        onClick={() => setSelectedStyle(style)} 
+                      <button
+                        key={style.id}
+                        onClick={() => setSelectedStyle(style)}
                         className={`flex items-center gap-4 p-3 rounded-2xl transition-all border ${selectedStyle.id === style.id ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5' : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
                       >
                         <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-sm">
@@ -349,9 +440,9 @@ const Ideas: React.FC = () => {
                       { id: '1:1', icon: LayoutGrid },
                       { id: '9:16', icon: Smartphone }
                     ].map(ratio => (
-                      <button 
-                        key={ratio.id} 
-                        onClick={() => setAspectRatio(ratio.id as any)} 
+                      <button
+                        key={ratio.id}
+                        onClick={() => setAspectRatio(ratio.id as any)}
                         className={`flex-1 py-3 rounded-lg flex flex-col items-center gap-1 transition-all ${aspectRatio === ratio.id ? 'bg-primary text-gray-900 shadow-lg' : 'text-gray-500 hover:text-white'}`}
                       >
                         <ratio.icon size={18} />
@@ -363,18 +454,18 @@ const Ideas: React.FC = () => {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Prompt créatif</label>
-                  <textarea 
-                    value={studioPrompt} 
-                    onChange={e => setStudioPrompt(e.target.value)} 
-                    rows={4} 
-                    className="w-full bg-white/5 border border-white/10 rounded-3xl p-5 text-white font-bold text-sm outline-none focus:ring-4 focus:ring-primary/20 transition-all resize-none leading-relaxed" 
-                    placeholder="Décrivez l'image souhaitée..." 
+                  <textarea
+                    value={studioPrompt}
+                    onChange={e => setStudioPrompt(e.target.value)}
+                    rows={4}
+                    className="w-full bg-white/5 border border-white/10 rounded-3xl p-5 text-white font-bold text-sm outline-none focus:ring-4 focus:ring-primary/20 transition-all resize-none leading-relaxed"
+                    placeholder="Décrivez l'image souhaitée..."
                   />
                 </div>
 
-                <button 
-                  onClick={handleGenerateImage} 
-                  disabled={isGeneratingImage || !studioPrompt} 
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={isGeneratingImage || !studioPrompt}
                   className="w-full py-5 bg-primary text-gray-900 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {isGeneratingImage ? <Loader2 className="animate-spin" /> : <Zap size={18} fill="currentColor" />} {isGeneratingImage ? 'Magie en cours...' : 'Générer l\'image'}
@@ -382,15 +473,14 @@ const Ideas: React.FC = () => {
               </div>
 
               <div className="flex-1 p-12 bg-black/40 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className={`transition-all duration-700 relative z-10 bg-white/5 rounded-[3.5rem] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.6)] border border-white/10 flex items-center justify-center ${
-                  aspectRatio === '16:9' ? 'w-full max-w-4xl aspect-video' : 
-                  aspectRatio === '9:16' ? 'h-full max-h-[650px] aspect-[9/16]' : 
-                  'w-full max-w-xl aspect-square'
-                }`}>
+                <div className={`transition-all duration-700 relative z-10 bg-white/5 rounded-[3.5rem] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.6)] border border-white/10 flex items-center justify-center ${aspectRatio === '16:9' ? 'w-full max-w-4xl aspect-video' :
+                  aspectRatio === '9:16' ? 'h-full max-h-[650px] aspect-[9/16]' :
+                    'w-full max-w-xl aspect-square'
+                  }`}>
                   {isGeneratingImage ? (
                     <div className="flex flex-col items-center gap-6 animate-in fade-in">
-                       <div className="w-14 h-14 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-lg"></div>
-                       <p className="text-primary font-black text-[10px] uppercase tracking-[0.3em]">Neural Rendering...</p>
+                      <div className="w-14 h-14 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-lg"></div>
+                      <p className="text-primary font-black text-[10px] uppercase tracking-[0.3em]">Neural Rendering...</p>
                     </div>
                   ) : studioImagePreview ? (
                     <img src={studioImagePreview} className="w-full h-full object-cover animate-in fade-in zoom-in duration-1000" />
@@ -404,10 +494,10 @@ const Ideas: React.FC = () => {
 
                 {studioImagePreview && !isGeneratingImage && (
                   <div className="flex gap-4 mt-12 animate-in slide-in-from-bottom-6 duration-500 z-20">
-                     <button onClick={() => setStudioImagePreview(null)} className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all">Recommencer</button>
-                     <button onClick={applyGeneratedImage} disabled={isSaving} className="px-12 py-4 bg-primary text-gray-900 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-3 hover:shadow-primary/30 transition-all active:scale-95">
-                       {isSaving ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={18} />} Appliquer à ce concept
-                     </button>
+                    <button onClick={() => setStudioImagePreview(null)} className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all">Recommencer</button>
+                    <button onClick={applyGeneratedImage} disabled={isSaving} className="px-12 py-4 bg-primary text-gray-900 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-3 hover:shadow-primary/30 transition-all active:scale-95">
+                      {isSaving ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={18} />} Appliquer à ce concept
+                    </button>
                   </div>
                 )}
               </div>
@@ -419,30 +509,30 @@ const Ideas: React.FC = () => {
       {/* MODAL CRÉATION CONCEPT */}
       {isCreatingModalOpen && (
         <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-           <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-              <div className="p-10 space-y-8">
-                 <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter">Nouveau Concept</h3>
-                    <button onClick={() => startTransition(() => setIsCreatingModalOpen(false))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={24}/></button>
-                 </div>
-                 <form onSubmit={handleCreateIdea} className="space-y-6">
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité de Marque</label>
-                       <select required value={newIdea.brand_id} onChange={e => setNewIdea({...newIdea, brand_id: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold">
-                          <option value="">Sélectionner une marque...</option>
-                          {brands.map(b => <option key={b.id} value={b.id}>{b.brand_name}</option>)}
-                       </select>
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sujet / Titre de l'idée</label>
-                       <input required value={newIdea.title} onChange={e => setNewIdea({...newIdea, title: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold" placeholder="Ex: Pourquoi l'IA va changer le marketing" />
-                    </div>
-                    <button type="submit" disabled={isSaving || !newIdea.brand_id} className="w-full py-5 bg-gray-950 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                       {isSaving ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Créer le concept
-                    </button>
-                 </form>
+          <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-10 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Nouveau Concept</h3>
+                <button onClick={() => startTransition(() => setIsCreatingModalOpen(false))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={24} /></button>
               </div>
-           </div>
+              <form onSubmit={handleCreateIdea} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité de Marque</label>
+                  <select required value={newIdea.brand_id} onChange={e => setNewIdea({ ...newIdea, brand_id: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold">
+                    <option value="">Sélectionner une marque...</option>
+                    {brands.map(b => <option key={b.id} value={b.id}>{b.brand_name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sujet / Titre de l'idée</label>
+                  <input required value={newIdea.title} onChange={e => setNewIdea({ ...newIdea, title: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold" placeholder="Ex: Pourquoi l'IA va changer le marketing" />
+                </div>
+                <button type="submit" disabled={isSaving || !newIdea.brand_id} className="w-full py-5 bg-gray-950 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+                  {isSaving ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Créer le concept
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       )}
     </div>
