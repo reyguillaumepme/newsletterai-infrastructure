@@ -219,7 +219,8 @@ const NewsletterDetail: React.FC = () => {
         to: testEmail,
         subject: newsletter.subject,
         htmlContent: renderNewsletterHtml(),
-        brandName: brand.brand_name
+        brandName: brand.brand_name,
+        brandId: newsletter.brand_id
       });
 
       setTestEmailSent(true);
@@ -1126,75 +1127,75 @@ const NewsletterDetail: React.FC = () => {
         </div>
       )}
 
-    {/* Send Test Email Modal */}
-    {showSendTestModal && (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
-          <h2 className="text-2xl font-bold mb-2">Envoyer un Test</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            Recevez un aperçu de votre newsletter par email
-          </p>
+      {/* Send Test Email Modal */}
+      {showSendTestModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
+            <h2 className="text-2xl font-bold mb-2">Envoyer un Test</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Recevez un aperçu de votre newsletter par email
+            </p>
 
-          {testEmailSent ? (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="text-green-600" size={32} />
+            {testEmailSent ? (
+              <div className="flex flex-col items-center gap-4 py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="text-green-600" size={32} />
+                </div>
+                <p className="text-lg font-bold text-green-600">Test envoyé !</p>
+                <p className="text-sm text-gray-500">Vérifiez votre boîte de réception</p>
               </div>
-              <p className="text-lg font-bold text-green-600">Test envoyé !</p>
-              <p className="text-sm text-gray-500">Vérifiez votre boîte de réception</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSendTestEmail} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Adresse email *
-                </label>
-                <input
-                  type="email"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  placeholder="votre@email.com"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
-                  required
-                  autoFocus
-                />
-              </div>
+            ) : (
+              <form onSubmit={handleSendTestEmail} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Adresse email *
+                  </label>
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="votre@email.com"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
+                    required
+                    autoFocus
+                  />
+                </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSendTestModal(false);
-                    setTestEmail('');
-                  }}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
-                  disabled={isSendingTest}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSendingTest || !testEmail}
-                  className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {isSendingTest ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <SendHorizontal size={18} />
-                      Envoyer
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSendTestModal(false);
+                      setTestEmail('');
+                    }}
+                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                    disabled={isSendingTest}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSendingTest || !testEmail}
+                    className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isSendingTest ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} />
+                        Envoi...
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizontal size={18} />
+                        Envoyer
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
-    )}
+      )}
     </>
   );
 };
