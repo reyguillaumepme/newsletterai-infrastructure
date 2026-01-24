@@ -245,6 +245,11 @@ const NewsletterDetail: React.FC = () => {
   };
 
   const handleAddIdeaToNewsletter = async (idea: Idea) => {
+    // Enforce maximum of 5 articles
+    if (ideas.length >= 5) {
+      alert('Vous ne pouvez pas ajouter plus de 5 articles à une newsletter.');
+      return;
+    }
     const newIdx = ideas.length;
     const updatedIdea = { ...idea, newsletter_id: id, order_index: newIdx };
     startTransition(() => {
@@ -254,6 +259,72 @@ const NewsletterDetail: React.FC = () => {
       setOrderSaved(false);
     });
     await databaseService.updateIdea(idea.id, { newsletter_id: id, order_index: newIdx });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const reorderedIdeas = [...ideas];
+    const [draggedItem] = reorderedIdeas.splice(draggedIndex, 1);
+    reorderedIdeas.splice(dropIndex, 0, draggedItem);
+
+    // Update order_index for all ideas
+    const updatedIdeas = reorderedIdeas.map((idea, idx) => ({
+      ...idea,
+      order_index: idx
+    }));
+
+    startTransition(() => {
+      setIdeas(updatedIdeas);
+      setDraggedIndex(null);
+      setOrderSaved(false);
+    });
+
+    // Save to database
+    try {
+      await Promise.all(
+        updatedIdeas.map(idea =>
+          databaseService.updateIdea(idea.id, { order_index: idea.order_index })
+        )
+      );
+      setOrderSaved(true);
+      setTimeout(() => setOrderSaved(false), 2000);
+    } catch (error) {
+      console.error('Error saving order:', error);
+    }
+  };
+
+  const handleRemoveIdea = async (ideaId: string) => {
+    const updatedIdeas = ideas
+      .filter(i => i.id !== ideaId)
+      .map((idea, idx) => ({ ...idea, order_index: idx }));
+
+    startTransition(() => {
+      setIdeas(updatedIdeas);
+      setOrderSaved(false);
+    });
+
+    // Update database
+    await databaseService.updateIdea(ideaId, { newsletter_id: null, order_index: 0 });
+    await Promise.all(
+      updatedIdeas.map(idea =>
+        databaseService.updateIdea(idea.id, { order_index: idea.order_index })
+      )
+    );
   };
 
   const handleSelectIdea = (idea: Idea) => {
@@ -534,9 +605,44 @@ const NewsletterDetail: React.FC = () => {
           </div>
 
           <div className="space-y-4 relative">
+            {orderSaved && (
+              <div className="fixed top-8 right-8 bg-green-500 text-white px-6 py-3 rounded-2xl shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-300 font-bold text-sm flex items-center gap-2">
+                <CheckCircle2 size={18} />
+                Ordre sauvegardé !
+              </div>
+            )}
+            {ideas.length >= 5 && (
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 flex items-center gap-3">
+                <AlertCircle className="text-orange-500" size={20} />
+                <p className="text-sm font-bold text-orange-900">Maximum 5 blocs atteint</p>
+              </div>
+            )}
             {ideas.map((idea, index) => (
-              <div key={idea.id} onClick={() => handleSelectIdea(idea)} className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer flex gap-5 relative">
-                <div className="w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-50">
+              <div
+                key={idea.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={(e) => handleDrop(e, index)}
+                onClick={() => handleSelectIdea(idea)}
+                className={`bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-move flex gap-5 relative group ${draggedIndex === index ? 'opacity-50' : ''
+                  }`}
+              >
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical size={20} />
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm('Voulez-vous vraiment supprimer cet article ?')) {
+                      handleRemoveIdea(idea.id);
+                    }
+                  }}
+                  className="absolute right-3 top-3 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 z-10"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <div className="w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-50 ml-6">
                   {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={28} /></div>}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
@@ -750,8 +856,8 @@ const NewsletterDetail: React.FC = () => {
                           <button
                             onClick={() => handleToggleContactStatus(contact.id, contact.status)}
                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${contact.status === 'subscribed'
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                               }`}
                           >
                             {contact.status === 'subscribed' ? 'Abonné' : 'Désabonné'}
