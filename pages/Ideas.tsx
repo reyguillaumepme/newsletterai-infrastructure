@@ -140,6 +140,8 @@ const Ideas: React.FC = () => {
       startTransition(() => {
         setSelectedIdea(prev => prev ? { ...prev, ...enhanced } : null);
       });
+    } catch (error: any) {
+      alert(error.message || "Erreur lors de la génération IA");
     } finally { setIsAILoading(false); }
   };
 
@@ -371,7 +373,7 @@ const Ideas: React.FC = () => {
                     />
                   </div>
                   <button onClick={handleEnhanceWithAI} disabled={isAILoading} className="px-5 py-2.5 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all hover:bg-amber-100 border border-amber-100 shadow-sm active:scale-95 disabled:opacity-50">
-                    {isAILoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Optimiser par IA
+                    {isAILoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Générer par IA
                   </button>
                 </div>
 
