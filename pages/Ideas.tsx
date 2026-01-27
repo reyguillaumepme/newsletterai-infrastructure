@@ -268,6 +268,9 @@ const Ideas: React.FC = () => {
     setIsSaving(true);
     await databaseService.updateIdea(selectedIdea.id, selectedIdea);
     await loadData();
+    startTransition(() => {
+      setSelectedIdea(null);
+    });
     setIsSaving(false);
   };
 
@@ -590,7 +593,7 @@ const Ideas: React.FC = () => {
                   value={selectedIdea.content || ''}
                   onChange={content => setSelectedIdea(prev => prev ? { ...prev, content } : null)}
                   modules={QUILL_MODULES}
-                  className="flex-1 overflow-y-auto custom-scrollbar"
+                  className="flex-1 overflow-hidden flex flex-col [&>.ql-container]:flex-1 [&>.ql-container]:overflow-y-auto [&>.ql-container]:custom-scrollbar [&>.ql-editor]:min-h-full"
                   placeholder="Rédigez le contenu complet ici..."
                 />
 
