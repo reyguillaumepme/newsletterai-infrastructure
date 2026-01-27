@@ -200,52 +200,43 @@ const Ideas: React.FC = () => {
     );
   };
 
-  const IdeaCardLarge: React.FC<{ idea: Idea }> = ({ idea }) => {
-    // Large format card
+  const IdeaCardCompact: React.FC<{ idea: Idea }> = ({ idea }) => {
     return (
-      <div onClick={() => handleSelectIdea(idea)} className="group bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all cursor-pointer flex flex-col md:flex-row overflow-hidden hover:-translate-y-1 h-full md:h-[280px]">
-        {/* Image Section (Left or Top) - Bigger now */}
-        <div className={`w-full md:w-[40%] bg-gray-100 relative overflow-hidden shrink-0`}>
+      <div onClick={() => handleSelectIdea(idea)} className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden hover:-translate-y-1 h-full min-h-[320px]">
+        {/* Image Section - Aspect Ratio 16/9 */}
+        <div className="relative aspect-video bg-gray-100 overflow-hidden shrink-0">
           {idea.image_url ? (
             <img src={idea.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <ImageIcon size={48} />
+              <ImageIcon size={32} />
             </div>
           )}
-          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+          <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
 
-          {/* ID Badge or Type */}
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-3 left-3">
             <BrandBadge brandId={idea.brand_id} />
           </div>
         </div>
 
         {/* Content Section */}
-        <div className="flex-1 p-8 flex flex-col relative">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">{idea.source_type || 'Idée'}</span>
-              <h3 className="text-2xl font-black text-gray-900 group-hover:text-primary transition-colors leading-tight mb-2">{idea.title}</h3>
+        <div className="flex-1 p-5 flex flex-col">
+          <div className="mb-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1 block">{idea.source_type || 'Idée'}</span>
+            <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">{idea.title}</h3>
+          </div>
+
+          <div className="flex-1 mb-4">
+            <div className="text-gray-500 text-xs leading-relaxed line-clamp-3" dangerouslySetInnerHTML={{ __html: idea.content || '' }} />
+          </div>
+
+          <div className="pt-3 border-t border-gray-50 flex items-center justify-between mt-auto">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+              {idea.image_prompt && <span className="flex items-center gap-1 text-purple-500 bg-purple-50 px-2 py-1 rounded-md"><Sparkles size={10} /> IA Ready</span>}
             </div>
-            {/* Delete Button */}
-            <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="p-2 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100">
-              <Trash2 size={18} />
+            <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+              <Trash2 size={14} />
             </button>
-          </div>
-
-          <div className="flex-1 overflow-hidden relative">
-            <div className="text-gray-500 text-sm leading-relaxed line-clamp-4" dangerouslySetInnerHTML={{ __html: idea.content || '' }} />
-            <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent" />
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
-              <span className="flex items-center gap-1.5"><Sparkles size={14} className={idea.image_prompt ? "text-purple-500" : ""} /> {idea.image_prompt ? "Prompt IA Généré" : "Pas de prompt"}</span>
-            </div>
-            <span className="text-primary font-black text-xs uppercase tracking-widest group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-              Ouvrir <ArrowRight size={14} />
-            </span>
           </div>
         </div>
       </div>
@@ -419,9 +410,9 @@ const Ideas: React.FC = () => {
         {/* --- SECTION 1: NON UTILISÉES --- */}
         <StatusSection title="💡 Idées Disponibles (Non Utilisées)" count={unusedIdeas.length}>
           {unusedIdeas.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {unusedIdeas.map(idea => (
-                <IdeaCardLarge key={idea.id} idea={idea} />
+                <IdeaCardCompact key={idea.id} idea={idea} />
               ))}
             </div>
           ) : (
@@ -435,10 +426,9 @@ const Ideas: React.FC = () => {
 
         {/* --- SECTION 2: UTILISÉES --- */}
         <StatusSection title="✅ Idées Utilisées" count={usedIdeas.length} collapsible defaultCollapsed={unusedIdeas.length > 0}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
-            {/* Format un peu plus compact pour les utilisées (ou identique ?) - Le user a demandé "format en plus grand" pour les idées. Gardons le grand format mais en grille de 3 pour les utilisées pour gagner de la place, ou grille de 2 aussi. Allons sur grille de 2 pour cohérence. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 opacity-75">
             {usedIdeas.map(idea => (
-              <IdeaCardLarge key={idea.id} idea={idea} />
+              <IdeaCardCompact key={idea.id} idea={idea} />
             ))}
           </div>
         </StatusSection>
@@ -618,20 +608,22 @@ const Ideas: React.FC = () => {
 
       {/* MODAL STUDIO VISUEL PRO - ENHANCED */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[500] flex items-center justify-center animate-in fade-in duration-500">
-          <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[500] flex items-center justify-center animate-in fade-in duration-500 p-4 lg:p-10">
+          <div className="w-full h-full max-h-[85vh] max-w-7xl flex flex-col md:flex-row overflow-hidden relative bg-white rounded-[3rem] shadow-2xl">
 
             {/* Header / Top Bar (Floating) */}
-            <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none z-50">
-              <div className="pointer-events-auto bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-5 py-2 text-white flex items-center gap-3 shadow-2xl">
-                <Palette size={16} className="text-primary" />
-                <span className="text-xs font-black uppercase tracking-widest">Studio Visuel</span>
+            <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start pointer-events-none z-50">
+              <div className="pointer-events-auto flex items-center gap-4">
+                <div className="bg-black/90 backdrop-blur-xl rounded-full px-8 py-4 text-white flex items-center gap-4 shadow-2xl animate-in slide-in-from-left duration-700 border border-white/10 z-[100]">
+                  <Palette size={28} className="text-primary animate-pulse" />
+                  <span className="text-2xl font-black uppercase tracking-widest text-white">Visual Studio</span>
+                </div>
               </div>
-              <button onClick={() => startTransition(() => setShowImageModal(false))} className="pointer-events-auto p-3 bg-white hover:bg-gray-200 rounded-full text-black transition-all hover:scale-110 shadow-xl"><X size={20} /></button>
+              <button onClick={() => startTransition(() => setShowImageModal(false))} className="pointer-events-auto p-3 bg-white hover:bg-gray-200 rounded-full text-black transition-all hover:scale-110 shadow-xl"><X size={24} /></button>
             </div>
 
             {/* CANVAS AREA (Center/Left) */}
-            <div className={`flex-1 bg-[#0f0f11] relative flex items-center justify-center p-8 lg:p-16 overflow-hidden group transition-all duration-500`}>
+            <div className={`flex-1 bg-[#0f0f11] relative flex flex-col items-center justify-center p-8 lg:p-16 overflow-hidden group transition-all duration-500`}>
               {/* Background Grid Pattern */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-50 pointer-events-none"></div>
@@ -651,9 +643,9 @@ const Ideas: React.FC = () => {
                         <Sparkles size={24} className="text-primary animate-bounce" />
                       </div>
                     </div>
-                    <div className="text-center space-y-1">
-                      <p className="text-white font-black text-sm uppercase tracking-[0.3em] font-mono">Rendering</p>
-                      <p className="text-gray-500 text-[10px] font-mono">Utilizing Gemini Logic Core</p>
+                    <div className="text-center space-y-2">
+                      <p className="text-white font-black text-sm uppercase tracking-[0.3em] font-mono">Génération en cours</p>
+                      <p className="text-gray-500 text-[10px] font-mono">Powered by Google Gemini</p>
                     </div>
                   </div>
                 ) : studioImagePreview ? (
@@ -674,18 +666,25 @@ const Ideas: React.FC = () => {
                 )}
 
                 {/* Canvas Actions Overlay */}
-                {studioImagePreview && !isGeneratingImage && (
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 z-30">
-                    <button onClick={() => { setStudioImagePreview(null); setImportedImage(null); }} className="p-3 hover:bg-white/10 rounded-xl text-white transition-colors" title="Clear">
-                      <Trash2 size={18} />
-                    </button>
-                    <div className="w-px h-6 bg-white/20"></div>
-                    <button onClick={applyGeneratedImage} disabled={isSaving} className="px-6 py-2 bg-primary hover:bg-amber-400 text-black rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2">
-                      <Check size={14} /> Importer
-                    </button>
-                  </div>
-                )}
+                <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 transition-all duration-500 z-30">
+                  {/* Placeholder for future overlay actions if needed */}
+                </div>
+
               </div>
+
+              {/* GENERATE ACTION - MOVED UNDER IMAGE - NOW STATICALLY POSITIONED */}
+              {!isGeneratingImage && editTab === 'generate' && (
+                <div className="mt-8 w-full max-w-md animate-in slide-in-from-bottom-4 duration-700 z-40">
+                  <button
+                    onClick={handleGenerateImage}
+                    disabled={!studioPrompt}
+                    className="w-full py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl border border-white/10 backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-30 disabled:translate-y-0"
+                  >
+                    <Sparkles size={18} className="text-primary" />
+                    <span>Générer le visuel</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* SIDEBAR CONTROLS (Right) */}
@@ -893,34 +892,14 @@ const Ideas: React.FC = () => {
 
               {/* Footer / Action */}
               <div className="p-8 border-t border-gray-100 bg-gray-50/50 backdrop-blur-sm">
-                {editTab === 'generate' ? (
-                  <button
-                    onClick={handleGenerateImage}
-                    disabled={isGeneratingImage || !studioPrompt}
-                    className="w-full py-5 bg-black hover:bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:transform-none group"
-                  >
-                    {isGeneratingImage ? (
-                      <>
-                        <Loader2 className="animate-spin" size={18} />
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap size={18} className="group-hover:text-primary transition-colors" fill="currentColor" />
-                        <span>Générer</span>
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={applyGeneratedImage} // Apply logic handles filter baking
-                    disabled={isSaving}
-                    className="w-full py-5 bg-primary hover:bg-amber-400 text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-                  >
-                    <CheckCircle2 size={18} />
-                    <span>Valider les retouches</span>
-                  </button>
-                )}
+                <button
+                  onClick={applyGeneratedImage} // Apply logic handles filter baking
+                  disabled={isSaving || !studioImagePreview}
+                  className="w-full py-5 bg-primary hover:bg-amber-400 text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale"
+                >
+                  {isSaving ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={20} />}
+                  <span>{editTab === 'edit' ? 'Valider les retouches' : 'Valider ce visuel'}</span>
+                </button>
               </div>
             </div>
 
