@@ -29,7 +29,10 @@ import {
   Sliders,
   Sun,
   Contrast,
-  Droplets
+  Droplets,
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 import { authService, DEMO_USER_EMAIL } from '../services/authService';
@@ -64,6 +67,10 @@ const Ideas: React.FC = () => {
   const [isAILoading, setIsAILoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Filters
+  const [selectedBrandId, setSelectedBrandId] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // STUDIO VISUEL STATES
   const [showImageModal, setShowImageModal] = useState(false);
@@ -126,12 +133,125 @@ const Ideas: React.FC = () => {
     });
   };
 
-  const groupedIdeas = useMemo(() => {
-    return brands.map(brand => {
-      const brandIdeas = ideas.filter(i => i.brand_id === brand.id);
-      return { ...brand, ideas: brandIdeas };
-    }).filter(b => b.ideas.length > 0 || brands.length === 1);
-  }, [brands, ideas]);
+  // Filter Logic
+  const filteredIdeas = useMemo(() => {
+    return ideas.filter(idea => {
+      const matchesBrand = selectedBrandId === 'all' || idea.brand_id === selectedBrandId;
+      const matchesSearch = !searchQuery || idea.title.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesBrand && matchesSearch;
+    });
+  }, [ideas, selectedBrandId, searchQuery]);
+
+  // Group by Status (Used vs Unused)
+  // Logic: "Used" if it has a newsletter_id OR used=true
+  const unusedIdeas = filteredIdeas.filter(i => !i.newsletter_id && !i.used);
+  const usedIdeas = filteredIdeas.filter(i => i.newsletter_id || i.used);
+
+  // Helper for Brand Colors (Consistent with Newsletters)
+  const getBrandColor = (brandName: string): string => {
+    let hash = 0;
+    for (let i = 0; i < brandName.length; i++) {
+      hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    return `hsl(${hue}, 70%, 95%)`;
+  };
+
+  const getBrandTextColor = (brandName: string): string => {
+    let hash = 0;
+    for (let i = 0; i < brandName.length; i++) {
+      hash = brandName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    return `hsl(${hue}, 60%, 45%)`;
+  };
+
+  const BrandBadge: React.FC<{ brandId: string }> = ({ brandId }) => {
+    const brand = brands.find(b => b.id === brandId);
+    if (!brand) return null;
+    const bgColor = getBrandColor(brand.brand_name);
+    const textColor = getBrandTextColor(brand.brand_name);
+
+    return (
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: bgColor, color: textColor }}>
+        {brand.logo_url && <img src={brand.logo_url} className="w-4 h-4 rounded-full object-cover" />}
+        <span>{brand.brand_name}</span>
+      </div>
+    );
+  };
+
+  const StatusSection: React.FC<{ title: string; count: number; children: React.ReactNode; collapsible?: boolean; defaultCollapsed?: boolean }> = ({ title, count, children, collapsible, defaultCollapsed }) => {
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed || false);
+    if (count === 0) return null;
+    return (
+      <div className="space-y-6">
+        <div className={`flex items-center justify-between ${collapsible ? 'cursor-pointer' : ''}`} onClick={() => collapsible && setIsCollapsed(!isCollapsed)}>
+          <h3 className="text-xl font-black uppercase text-gray-900 flex items-center gap-3">
+            {title} <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-lg text-sm">{count}</span>
+          </h3>
+          {collapsible && (
+            <button className="text-gray-400 hover:text-gray-600 transition-colors">
+              {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+            </button>
+          )}
+        </div>
+        {!isCollapsed && children}
+      </div>
+    );
+  };
+
+  const IdeaCardLarge: React.FC<{ idea: Idea }> = ({ idea }) => {
+    // Large format card
+    return (
+      <div onClick={() => handleSelectIdea(idea)} className="group bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all cursor-pointer flex flex-col md:flex-row overflow-hidden hover:-translate-y-1 h-full md:h-[280px]">
+        {/* Image Section (Left or Top) - Bigger now */}
+        <div className={`w-full md:w-[40%] bg-gray-100 relative overflow-hidden shrink-0`}>
+          {idea.image_url ? (
+            <img src={idea.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300">
+              <ImageIcon size={48} />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+
+          {/* ID Badge or Type */}
+          <div className="absolute top-4 left-4">
+            <BrandBadge brandId={idea.brand_id} />
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="flex-1 p-8 flex flex-col relative">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">{idea.source_type || 'Idée'}</span>
+              <h3 className="text-2xl font-black text-gray-900 group-hover:text-primary transition-colors leading-tight mb-2">{idea.title}</h3>
+            </div>
+            {/* Delete Button */}
+            <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="p-2 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+              <Trash2 size={18} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden relative">
+            <div className="text-gray-500 text-sm leading-relaxed line-clamp-4" dangerouslySetInnerHTML={{ __html: idea.content || '' }} />
+            <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-white to-transparent" />
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
+              <span className="flex items-center gap-1.5"><Sparkles size={14} className={idea.image_prompt ? "text-purple-500" : ""} /> {idea.image_prompt ? "Prompt IA Généré" : "Pas de prompt"}</span>
+            </div>
+            <span className="text-primary font-black text-xs uppercase tracking-widest group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+              Ouvrir <ArrowRight size={14} />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
 
   const handleCreateIdea = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,52 +370,79 @@ const Ideas: React.FC = () => {
 
   return (
     <div className={`space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 ${isPending && !selectedIdea ? 'opacity-50' : ''}`}>
+      {/* Header */}
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-4xl font-black uppercase tracking-tighter text-gray-900">Banque d'Idées</h2>
-          <p className="text-gray-500 font-medium mt-1">Vos concepts de contenu regroupés par univers de marque.</p>
+          <p className="text-gray-500 font-medium mt-1">Vos concepts de contenu pour vos futures newsletters.</p>
         </div>
         <button onClick={() => startTransition(() => setIsCreatingModalOpen(true))} className="bg-primary hover:bg-[#ffca28] text-gray-900 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1">
           <Plus size={20} className="mr-2" /> Nouveau Concept
         </button>
       </div>
 
-      <div className="space-y-16">
-        {groupedIdeas.map(brandGroup => (
-          <div key={brandGroup.id} className="space-y-8">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-                  {brandGroup.logo_url ? <img src={brandGroup.logo_url} className="w-full h-full object-contain p-2" /> : <Briefcase size={24} className="text-gray-300" />}
-                </div>
-                <div>
-                  <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">{brandGroup.brand_name}</h3>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">{brandGroup.ideas.length} concept{brandGroup.ideas.length > 1 ? 's' : ''} actif{brandGroup.ideas.length > 1 ? 's' : ''}</p>
-                </div>
-              </div>
-            </div>
+      {/* Filter Bar */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sticky top-4 z-30">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher une idée..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-all"
+            />
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {brandGroup.ideas.map(idea => (
-                <div key={idea.id} onClick={() => handleSelectIdea(idea)} className="bg-white p-5 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all cursor-pointer h-full flex flex-col group hover:-translate-y-1 relative overflow-hidden">
-                  <div className="relative aspect-video rounded-3xl overflow-hidden mb-6 bg-gray-50 border border-gray-100/50 shadow-inner">
-                    {idea.image_url ? (
-                      <img src={idea.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-200">
-                        <ImageIcon size={40} />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <h3 className="font-bold text-xl mb-3 tracking-tight group-hover:text-primary transition-colors">{idea.title}</h3>
-                  <div className="text-gray-400 text-sm line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: idea.content || '' }} />
-                  <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="absolute top-4 right-4 p-3 bg-white/80 backdrop-blur-md rounded-2xl text-red-500 opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:bg-red-500 hover:text-white"><Trash2 size={18} /></button>
-                </div>
+          {/* Brand Filter */}
+          <div className="relative">
+            <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <select
+              value={selectedBrandId}
+              onChange={(e) => setSelectedBrandId(e.target.value)}
+              className="pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-all appearance-none bg-white cursor-pointer min-w-[200px] font-bold text-sm"
+            >
+              <option value="all">Toutes les marques</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>{brand.brand_name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-16">
+
+        {/* --- SECTION 1: NON UTILISÉES --- */}
+        <StatusSection title="💡 Idées Disponibles (Non Utilisées)" count={unusedIdeas.length}>
+          {unusedIdeas.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {unusedIdeas.map(idea => (
+                <IdeaCardLarge key={idea.id} idea={idea} />
               ))}
             </div>
+          ) : (
+            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-[2rem] p-12 text-center text-gray-400">
+              <Sparkles size={48} className="mx-auto mb-4 opacity-50" />
+              <p className="font-bold">Aucune idée en attente pour le moment.</p>
+              <button onClick={() => setIsCreatingModalOpen(true)} className="text-primary font-black uppercase text-xs mt-4 hover:underline">Créer une idée</button>
+            </div>
+          )}
+        </StatusSection>
+
+        {/* --- SECTION 2: UTILISÉES --- */}
+        <StatusSection title="✅ Idées Utilisées" count={usedIdeas.length} collapsible defaultCollapsed={unusedIdeas.length > 0}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
+            {/* Format un peu plus compact pour les utilisées (ou identique ?) - Le user a demandé "format en plus grand" pour les idées. Gardons le grand format mais en grille de 3 pour les utilisées pour gagner de la place, ou grille de 2 aussi. Allons sur grille de 2 pour cohérence. */}
+            {usedIdeas.map(idea => (
+              <IdeaCardLarge key={idea.id} idea={idea} />
+            ))}
           </div>
-        ))}
+        </StatusSection>
+
       </div>
 
 
@@ -777,6 +924,55 @@ const Ideas: React.FC = () => {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* CREATE MODAL */}
+      {isCreatingModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black uppercase text-gray-900">Nouvelle Idée</h3>
+              <button onClick={() => setIsCreatingModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreateIdea} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-gray-500">Titre (obligatoire)</label>
+                <input
+                  required
+                  className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  placeholder="Ex: Les 5 tendances 2024..."
+                  value={newIdea.title}
+                  onChange={e => setNewIdea({ ...newIdea, title: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-gray-500">Marque (obligatoire)</label>
+                <select
+                  required
+                  className="w-full p-4 bg-gray-50 rounded-xl font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none"
+                  value={newIdea.brand_id}
+                  onChange={e => setNewIdea({ ...newIdea, brand_id: e.target.value })}
+                >
+                  <option value="">Sélectionner une marque...</option>
+                  {brands.map(b => <option key={b.id} value={b.id}>{b.brand_name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-gray-500">Description / Notes</label>
+                <textarea
+                  className="w-full p-4 bg-gray-50 rounded-xl font-medium outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                  rows={4}
+                  placeholder="Notez vos premières idées ici..."
+                  value={newIdea.content}
+                  onChange={e => setNewIdea({ ...newIdea, content: e.target.value })}
+                />
+              </div>
+              <button type="submit" disabled={isSaving || !newIdea.title || !newIdea.brand_id} className="w-full py-4 bg-black text-white rounded-xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                {isSaving ? <Loader2 className="animate-spin" /> : 'Créer le concept'}
+              </button>
+            </form>
           </div>
         </div>
       )}
