@@ -55,10 +55,30 @@ export const generateNewsletterHook = async (subject: string, articles: Idea[], 
   try {
     const articlesList = articles.map(a => `- ${a.title}`).join('\n');
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-      systemInstruction: "Réponds UNIQUEMENT avec l'accroche."
+      model: "gemini-2.0-flash-exp",
+      systemInstruction: `Tu es un copywriter expert. Ta mission est de rédiger l'accroche (l'intro) d'une newsletter.
+TON STYLE DOIT ÊTRE :
+- Direct et percutant (entre dans le vif du sujet tout de suite)
+- Vivant et conversationnel (comme si tu écrivais à un ami)
+- Engageant (pose une question, surprend, ou crée de la curiosité)
+- Rédige TOUJOURS à la première personne ("Je" ou "Nous"). C'est une lettre personnelle.
+- Évite absolument le langage corporatif ennuyeux ("Nous espérons que vous allez bien...")`
     });
-    const result = await model.generateContent(`Rédige l'intro de newsletter. Sujet : ${subject}. Articles : ${articlesList}. Ton : ${brand?.editorial_tone || 'Pro'}`);
+
+    const prompt = `Rédige une introduction courte et puissante pour cette newsletter.
+    
+CONTEXTE :
+- Sujet Principal : ${subject}
+- Ton de la marque : ${brand?.editorial_tone || 'Direct et Authentique'}
+
+CONTENU DE LA NEWSLETTER (pour t'inspirer) :
+${articlesList}
+
+CONSIGNE :
+Rédige seulement l'introduction (max 3-4 phrases). Le but est de donner envie de lire la suite immédiatement.
+Utilise des sauts de ligne pour aérer. Pas de titre "Introduction", juste le texte.`;
+
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text()?.trim() || "";
   } catch (e) {
