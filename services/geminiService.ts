@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 export const generateNewsletterStrategy = async (brand: Brand): Promise<StructuredStrategy> => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = `Génère une stratégie de newsletter pour la marque : "${brand.brand_name}".
   Description : ${brand.description}
   Audience : ${brand.target_audience}
@@ -39,7 +39,7 @@ export const generateNewsletterStrategy = async (brand: Brand): Promise<Structur
 export const generateWritingFramework = async (brand: Brand): Promise<string> => {
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       systemInstruction: "You are an expert copywriter."
     });
     const result = await model.generateContent(`Génère un cadre d'écriture pour : ${brand.brand_name}.`);
@@ -55,7 +55,7 @@ export const generateNewsletterHook = async (subject: string, articles: Idea[], 
   try {
     const articlesList = articles.map(a => `- ${a.title}`).join('\n');
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       systemInstruction: "Réponds UNIQUEMENT avec l'accroche."
     });
     const result = await model.generateContent(`Rédige l'intro de newsletter. Sujet : ${subject}. Articles : ${articlesList}. Ton : ${brand?.editorial_tone || 'Pro'}`);
@@ -121,7 +121,7 @@ RÉPONDS UNIQUEMENT avec un objet JSON valide dans ce format exact:
 }`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       systemInstruction: systemPrompt
     });
     const result = await model.generateContent(userPrompt);
@@ -138,9 +138,49 @@ RÉPONDS UNIQUEMENT avec un objet JSON valide dans ce format exact:
   }
 };
 
-export const generateImageFromPrompt = async (prompt: string, stylePrefix: string = "", aspectRatio: "1:1" | "16:9" | "9:16" = "16:9"): Promise<string> => {
-  // Note: Google Generative AI SDK doesn't support image generation yet
-  // This is a placeholder that returns a colored placeholder
-  console.warn("Image generation not yet supported with current SDK");
-  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='800' height='400' fill='%23FFD54F'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='24' fill='%23333' text-anchor='middle' dominant-baseline='middle'%3EImage: ${prompt.substring(0, 30)}...%3C/text%3E%3C/svg%3E`;
+export const generateImageFromPrompt = async (
+  prompt: string,
+  stylePrefix: string = "",
+  aspectRatio: "1:1" | "16:9" | "9:16" = "16:9"
+): Promise<string> => {
+  try {
+    // Import the new SDK dynamically to avoid bundling issues
+    const { GoogleGenAI } = await import("@google/genai");
+
+    // NO TEXT CONSTRAINT - Critical for newsletter images
+    const noTextConstraint = "CRITICAL INSTRUCTION: This image must contain ABSOLUTELY NO TEXT, no letters, no words, no numbers, no captions, no watermarks, no logos, no typography, no writing of any kind. The image must be purely visual without any textual elements.";
+
+    // Build the complete prompt with style and constraints
+    const fullPrompt = `${stylePrefix} ${prompt}. ${noTextConstraint}. Style: Clean, professional, suitable for email newsletter.`;
+
+    // Initialize the new SDK
+    const ai = new GoogleGenAI({ apiKey });
+
+    // Use Gemini 2.5 Flash Image model for image generation
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: fullPrompt,
+      config: {
+        responseModalities: ["IMAGE"],
+      }
+    });
+
+    // Extract image from response parts
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if ((part as any).inlineData) {
+        const inlineData = (part as any).inlineData;
+        const mimeType = inlineData.mimeType || "image/png";
+        return `data:${mimeType};base64,${inlineData.data}`;
+      }
+    }
+
+    throw new Error("No image data in response");
+
+  } catch (error) {
+    console.error("Erreur génération image:", error);
+
+    // Fallback: return a nice placeholder indicating the error
+    const encodedPrompt = encodeURIComponent(prompt.substring(0, 40));
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340' viewBox='0 0 600 340'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='340' fill='url(%23bg)'/%3E%3Ctext x='50%25' y='45%25' font-family='system-ui' font-size='18' fill='white' text-anchor='middle' opacity='0.9'%3EGénération en cours...%3C/text%3E%3Ctext x='50%25' y='58%25' font-family='system-ui' font-size='12' fill='white' text-anchor='middle' opacity='0.6'%3E${encodedPrompt}%3C/text%3E%3C/svg%3E`;
+  }
 };
