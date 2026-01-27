@@ -42,9 +42,12 @@ const QUILL_MODULES = {
 };
 
 const VISUAL_STYLES = [
-  { id: 'editorial', name: 'Photo Éditoriale', prefix: 'High-end professional editorial photography, cinematic lighting, ultra-realistic, 8k.', preview: 'https://images.pexels.com/photos/167533/pexels-photo-167533.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop' },
-  { id: 'storybook', name: 'Livre pour enfant', prefix: 'Children book illustration, soft watercolor, whimsical.', preview: 'https://images.pexels.com/photos/1741230/pexels-photo-1741230.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop' },
-  { id: 'isometric', name: 'Isométrie 3D', prefix: '3D isometric clay render, vibrant SaaS colors, 4k.', preview: 'https://images.pexels.com/photos/4513222/pexels-photo-4513222.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop' }
+  { id: 'editorial', name: 'Photo Éditoriale', prefix: 'High-end professional editorial photography, cinematic lighting, ultra-realistic, 8k quality, magazine cover style.', preview: 'https://images.pexels.com/photos/167533/pexels-photo-167533.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#1a1a2e' },
+  { id: 'storybook', name: 'Illustration Douce', prefix: 'Soft watercolor illustration, children book style, whimsical, dreamy pastel colors, gentle artistic style.', preview: 'https://images.pexels.com/photos/1741230/pexels-photo-1741230.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#f8b4d9' },
+  { id: 'isometric', name: 'Isométrie 3D', prefix: '3D isometric clay render, vibrant modern SaaS colors, soft shadows, clean minimalist 4k quality.', preview: 'https://images.pexels.com/photos/4513222/pexels-photo-4513222.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#6366f1' },
+  { id: 'flat', name: 'Flat Design', prefix: 'Modern flat design vector illustration, bold geometric shapes, vibrant colors, clean minimalist style, digital art.', preview: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#10b981' },
+  { id: 'retro', name: 'Rétro Vintage', prefix: 'Retro vintage 70s-80s aesthetic, warm nostalgic colors, grain texture, analog film look, groovy style.', preview: 'https://images.pexels.com/photos/1193743/pexels-photo-1193743.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#f59e0b' },
+  { id: 'bnw', name: 'Noir & Blanc', prefix: 'High contrast black and white artistic photography, dramatic lighting, fine art style, elegant monochrome.', preview: 'https://images.pexels.com/photos/1671325/pexels-photo-1671325.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=1&fit=crop', color: '#374151' }
 ];
 
 const Ideas: React.FC = () => {
@@ -402,33 +405,43 @@ const Ideas: React.FC = () => {
       {showImageModal && (
         <div className="fixed inset-0 bg-gray-950/98 backdrop-blur-3xl z-[500] flex items-center justify-center p-4">
           <div className="bg-white/5 border border-white/10 w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
-            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/5">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-primary rounded-2xl text-gray-900 shadow-lg shadow-primary/20"><Palette size={24} /></div>
                 <div>
                   <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Studio Visuel IA</h3>
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-widest">Powered by Gemini 2.5 Flash Image</p>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-widest">Génération d'images pour newsletter</p>
                 </div>
               </div>
-              <button onClick={() => startTransition(() => setShowImageModal(false))} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all"><X size={24} /></button>
+              <div className="flex items-center gap-3">
+                <div className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400" />
+                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Sans texte</span>
+                </div>
+                <button onClick={() => startTransition(() => setShowImageModal(false))} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all"><X size={24} /></button>
+              </div>
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               <div className="w-full lg:w-[400px] p-8 border-r border-white/5 space-y-8 overflow-y-auto custom-scrollbar bg-black/20">
                 <div className="space-y-4">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Style Artistique</label>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     {VISUAL_STYLES.map(style => (
                       <button
                         key={style.id}
                         onClick={() => setSelectedStyle(style)}
-                        className={`flex items-center gap-4 p-3 rounded-2xl transition-all border ${selectedStyle.id === style.id ? 'bg-primary/10 border-primary text-primary shadow-lg shadow-primary/5' : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'}`}
+                        className={`relative flex flex-col items-center p-3 rounded-2xl transition-all border overflow-hidden group ${selectedStyle.id === style.id ? 'border-primary shadow-lg shadow-primary/20 ring-2 ring-primary/30' : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'}`}
                       >
-                        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-sm">
-                          <img src={style.preview} className="w-full h-full object-cover" />
+                        <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 border border-white/10 shadow-inner">
+                          <img src={style.preview} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
                         </div>
-                        <span className="font-bold text-[10px] uppercase tracking-widest">{style.name}</span>
-                        {selectedStyle.id === style.id && <CheckCircle2 size={16} className="ml-auto" />}
+                        <span className={`font-bold text-[9px] uppercase tracking-wider text-center ${selectedStyle.id === style.id ? 'text-primary' : 'text-gray-400'}`}>{style.name}</span>
+                        {selectedStyle.id === style.id && (
+                          <div className="absolute top-2 right-2 p-1 bg-primary rounded-full">
+                            <Check size={10} className="text-gray-900" />
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
