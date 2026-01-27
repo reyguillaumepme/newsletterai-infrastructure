@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import {
   Search,
@@ -24,7 +24,12 @@ import {
   Layers,
   ArrowRight,
   Copy,
-  FileText
+  FileText,
+  Upload,
+  Sliders,
+  Sun,
+  Contrast,
+  Droplets
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 import { authService, DEMO_USER_EMAIL } from '../services/authService';
@@ -68,6 +73,16 @@ const Ideas: React.FC = () => {
   const [selectedStyle, setSelectedStyle] = useState(VISUAL_STYLES[0]);
   const [aspectRatio, setAspectRatio] = useState<"1:1" | "16:9" | "9:16">("16:9");
 
+  // NEW: Image Editing & Import States
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedImage, setImportedImage] = useState<string | null>(null);
+  const [editTab, setEditTab] = useState<'generate' | 'edit'>('generate');
+  const [imageFilters, setImageFilters] = useState({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100
+  });
+
   const [newIdea, setNewIdea] = useState({ title: '', brand_id: '', content: '' });
 
   const user = authService.getCurrentUser();
@@ -95,7 +110,18 @@ const Ideas: React.FC = () => {
   const handleOpenStudio = () => {
     if (!selectedIdea) return;
     startTransition(() => {
+      // Reset states
       setStudioPrompt(selectedIdea.image_prompt || selectedIdea.title);
+      setStudioImagePreview(null);
+      setImportedImage(null);
+      setImageFilters({ brightness: 100, contrast: 100, saturation: 100 });
+      setEditTab('generate');
+
+      // If idea has an existing image, load it as "Imported/Current" to allow editing
+      if (selectedIdea.image_url) {
+        setStudioImagePreview(selectedIdea.image_url);
+      }
+
       setShowImageModal(true);
     });
   };
@@ -151,9 +177,14 @@ const Ideas: React.FC = () => {
   const handleGenerateImage = async () => {
     if (!studioPrompt || isGeneratingImage) return;
     setIsGeneratingImage(true);
+    setEditTab('generate'); // Ensure we are in generate mode
     try {
-      const url = await generateImageFromPrompt(studioPrompt, selectedStyle.prefix, aspectRatio);
+      // Pass importedImage (if any) to Service for Image-to-Image
+      // The Service needs to be updated to handle this argument
+      const url = await generateImageFromPrompt(studioPrompt, selectedStyle.prefix, aspectRatio, importedImage);
       setStudioImagePreview(url);
+      setImportedImage(null); // Clear imported after generation (or keep it as reference?) -> Let's keep logic simple: new image replaces old
+      setImageFilters({ brightness: 100, contrast: 100, saturation: 100 }); // Reset filters for new image
     } catch (e) {
       alert("Erreur de génération.");
     } finally {
@@ -161,20 +192,57 @@ const Ideas: React.FC = () => {
     }
   };
 
+  const handleImportImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setStudioImagePreview(base64); // Show as current
+        setImportedImage(base64); // Set as reference for AI
+        setEditTab('edit'); // Switch to edit tab to show filters or just stay
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const applyGeneratedImage = async () => {
     if (!studioImagePreview || !selectedIdea) return;
     setIsSaving(true);
+
     try {
+      let finalImage = studioImagePreview;
+
+      // Baking Filters if modified
+      if (imageFilters.brightness !== 100 || imageFilters.contrast !== 100 || imageFilters.saturation !== 100) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = studioImagePreview;
+        await new Promise(resolve => { img.onload = resolve; });
+
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        if (ctx) {
+          ctx.filter = `brightness(${imageFilters.brightness}%) contrast(${imageFilters.contrast}%) saturate(${imageFilters.saturation}%)`;
+          ctx.drawImage(img, 0, 0);
+          finalImage = canvas.toDataURL('image/png');
+        }
+      }
+
       const updated = await databaseService.updateIdea(selectedIdea.id, {
-        image_url: studioImagePreview,
+        image_url: finalImage,
         image_prompt: studioPrompt
       });
       startTransition(() => {
         if (updated) setSelectedIdea(updated);
         setShowImageModal(false);
         setStudioImagePreview(null);
+        setImportedImage(null);
       });
       await loadData();
+    } catch (e) {
+      console.error("Save error", e);
     } finally { setIsSaving(false); }
   };
 
@@ -401,152 +469,314 @@ const Ideas: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL STUDIO VISUEL */}
+      {/* MODAL STUDIO VISUEL PRO - ENHANCED */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-gray-950/98 backdrop-blur-3xl z-[500] flex items-center justify-center p-4">
-          <div className="bg-white/5 border border-white/10 w-full max-w-6xl h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary rounded-2xl text-gray-900 shadow-lg shadow-primary/20"><Palette size={24} /></div>
-                <div>
-                  <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Studio Visuel IA</h3>
-                  <p className="text-gray-500 text-xs font-medium uppercase tracking-widest">Génération d'images pour newsletter</p>
-                </div>
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[500] flex items-center justify-center animate-in fade-in duration-500">
+          <div className="w-full h-full flex flex-col md:flex-row overflow-hidden relative">
+
+            {/* Header / Top Bar (Floating) */}
+            <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-start pointer-events-none z-50">
+              <div className="pointer-events-auto bg-black/50 backdrop-blur-md border border-white/10 rounded-full px-5 py-2 text-white flex items-center gap-3 shadow-2xl">
+                <Palette size={16} className="text-primary" />
+                <span className="text-xs font-black uppercase tracking-widest">Studio Visuel</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center gap-2">
-                  <Check size={14} className="text-emerald-400" />
-                  <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Sans texte</span>
-                </div>
-                <button onClick={() => startTransition(() => setShowImageModal(false))} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-white transition-all"><X size={24} /></button>
-              </div>
+              <button onClick={() => startTransition(() => setShowImageModal(false))} className="pointer-events-auto p-3 bg-white hover:bg-gray-200 rounded-full text-black transition-all hover:scale-110 shadow-xl"><X size={20} /></button>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              <div className="w-full lg:w-[400px] p-8 border-r border-white/5 space-y-8 overflow-y-auto custom-scrollbar bg-black/20">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Style Artistique</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {VISUAL_STYLES.map(style => (
-                      <button
-                        key={style.id}
-                        onClick={() => setSelectedStyle(style)}
-                        className={`relative flex flex-col items-center p-3 rounded-2xl transition-all border overflow-hidden group ${selectedStyle.id === style.id ? 'border-primary shadow-lg shadow-primary/20 ring-2 ring-primary/30' : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'}`}
-                      >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 border border-white/10 shadow-inner">
-                          <img src={style.preview} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                        </div>
-                        <span className={`font-bold text-[9px] uppercase tracking-wider text-center ${selectedStyle.id === style.id ? 'text-primary' : 'text-gray-400'}`}>{style.name}</span>
-                        {selectedStyle.id === style.id && (
-                          <div className="absolute top-2 right-2 p-1 bg-primary rounded-full">
-                            <Check size={10} className="text-gray-900" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {/* CANVAS AREA (Center/Left) */}
+            <div className={`flex-1 bg-[#0f0f11] relative flex items-center justify-center p-8 lg:p-16 overflow-hidden group transition-all duration-500`}>
+              {/* Background Grid Pattern */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-50 pointer-events-none"></div>
 
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Ratio d'aspect</label>
-                  <div className="flex bg-white/5 p-1 rounded-xl gap-1">
-                    {[
-                      { id: '16:9', icon: Monitor },
-                      { id: '1:1', icon: LayoutGrid },
-                      { id: '9:16', icon: Smartphone }
-                    ].map(ratio => (
-                      <button
-                        key={ratio.id}
-                        onClick={() => setAspectRatio(ratio.id as any)}
-                        className={`flex-1 py-3 rounded-lg flex flex-col items-center gap-1 transition-all ${aspectRatio === ratio.id ? 'bg-primary text-gray-900 shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                      >
-                        <ratio.icon size={18} />
-                        <span className="text-[8px] font-black">{ratio.id}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* The Image Stage */}
+              <div className={`relative transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-[0_0_100px_rgba(0,0,0,0.8)] outline outline-1 outline-white/10 bg-[#1a1a1c] flex items-center justify-center overflow-hidden
+                  ${aspectRatio === '16:9' ? 'w-full max-w-5xl aspect-video rounded-xl' :
+                  aspectRatio === '9:16' ? 'h-full max-h-[80vh] aspect-[9/16] rounded-xl' :
+                    'w-full max-w-2xl aspect-square rounded-xl'
+                }`}>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Prompt créatif</label>
-                  <textarea
-                    value={studioPrompt}
-                    onChange={e => setStudioPrompt(e.target.value)}
-                    rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-3xl p-5 text-white font-bold text-sm outline-none focus:ring-4 focus:ring-primary/20 transition-all resize-none leading-relaxed"
-                    placeholder="Décrivez l'image souhaitée..."
+                {isGeneratingImage ? (
+                  <div className="flex flex-col items-center gap-4 animate-pulse z-10">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full border-t-2 border-b-2 border-primary animate-spin"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Sparkles size={24} className="text-primary animate-bounce" />
+                      </div>
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-white font-black text-sm uppercase tracking-[0.3em] font-mono">Rendering</p>
+                      <p className="text-gray-500 text-[10px] font-mono">Utilizing Gemini Logic Core</p>
+                    </div>
+                  </div>
+                ) : studioImagePreview ? (
+                  <img
+                    src={studioImagePreview}
+                    className="w-full h-full object-contain animate-in fade-in zoom-in duration-700"
+                    style={{
+                      filter: `brightness(${imageFilters.brightness}%) contrast(${imageFilters.contrast}%) saturate(${imageFilters.saturation}%)`
+                    }}
                   />
-                </div>
-
-                <button
-                  onClick={handleGenerateImage}
-                  disabled={isGeneratingImage || !studioPrompt}
-                  className="w-full py-5 bg-primary text-gray-900 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  {isGeneratingImage ? <Loader2 className="animate-spin" /> : <Zap size={18} fill="currentColor" />} {isGeneratingImage ? 'Magie en cours...' : 'Générer l\'image'}
-                </button>
-              </div>
-
-              <div className="flex-1 p-12 bg-black/40 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className={`transition-all duration-700 relative z-10 bg-white/5 rounded-[3.5rem] overflow-hidden shadow-[0_0_120px_rgba(0,0,0,0.6)] border border-white/10 flex items-center justify-center ${aspectRatio === '16:9' ? 'w-full max-w-4xl aspect-video' :
-                  aspectRatio === '9:16' ? 'h-full max-h-[650px] aspect-[9/16]' :
-                    'w-full max-w-xl aspect-square'
-                  }`}>
-                  {isGeneratingImage ? (
-                    <div className="flex flex-col items-center gap-6 animate-in fade-in">
-                      <div className="w-14 h-14 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-lg"></div>
-                      <p className="text-primary font-black text-[10px] uppercase tracking-[0.3em]">Neural Rendering...</p>
+                ) : (
+                  <div className="text-center space-y-6 opacity-30 group-hover:opacity-50 transition-opacity">
+                    <div className="w-32 h-32 border border-dashed border-white/50 rounded-2xl flex items-center justify-center mx-auto">
+                      <ImageIcon size={48} className="text-white" />
                     </div>
-                  ) : studioImagePreview ? (
-                    <img src={studioImagePreview} className="w-full h-full object-cover animate-in fade-in zoom-in duration-1000" />
-                  ) : (
-                    <div className="text-center space-y-4 text-gray-700">
-                      <Wand2 size={80} className="mx-auto opacity-10" />
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-30">En attente de commandes créatives</p>
-                    </div>
-                  )}
-                </div>
+                    <p className="text-white text-xs font-black uppercase tracking-[0.2em]">Canvas Ready</p>
+                  </div>
+                )}
 
+                {/* Canvas Actions Overlay */}
                 {studioImagePreview && !isGeneratingImage && (
-                  <div className="flex gap-4 mt-12 animate-in slide-in-from-bottom-6 duration-500 z-20">
-                    <button onClick={() => setStudioImagePreview(null)} className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all">Recommencer</button>
-                    <button onClick={applyGeneratedImage} disabled={isSaving} className="px-12 py-4 bg-primary text-gray-900 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl flex items-center gap-3 hover:shadow-primary/30 transition-all active:scale-95">
-                      {isSaving ? <Loader2 className="animate-spin" /> : <CheckCircle2 size={18} />} Appliquer à ce concept
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 z-30">
+                    <button onClick={() => { setStudioImagePreview(null); setImportedImage(null); }} className="p-3 hover:bg-white/10 rounded-xl text-white transition-colors" title="Clear">
+                      <Trash2 size={18} />
+                    </button>
+                    <div className="w-px h-6 bg-white/20"></div>
+                    <button onClick={applyGeneratedImage} disabled={isSaving} className="px-6 py-2 bg-primary hover:bg-amber-400 text-black rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2">
+                      <Check size={14} /> Importer
                     </button>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* MODAL CRÉATION CONCEPT */}
-      {isCreatingModalOpen && (
-        <div className="fixed inset-0 bg-gray-950/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
-            <div className="p-10 space-y-8">
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Nouveau Concept</h3>
-                <button onClick={() => startTransition(() => setIsCreatingModalOpen(false))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={24} /></button>
-              </div>
-              <form onSubmit={handleCreateIdea} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité de Marque</label>
-                  <select required value={newIdea.brand_id} onChange={e => setNewIdea({ ...newIdea, brand_id: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold">
-                    <option value="">Sélectionner une marque...</option>
-                    {brands.map(b => <option key={b.id} value={b.id}>{b.brand_name}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sujet / Titre de l'idée</label>
-                  <input required value={newIdea.title} onChange={e => setNewIdea({ ...newIdea, title: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 outline-none focus:ring-4 focus:ring-primary/20 transition-all font-bold" placeholder="Ex: Pourquoi l'IA va changer le marketing" />
-                </div>
-                <button type="submit" disabled={isSaving || !newIdea.brand_id} className="w-full py-5 bg-gray-950 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                  {isSaving ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Créer le concept
+            {/* SIDEBAR CONTROLS (Right) */}
+            <div className="w-full md:w-[450px] bg-white h-auto md:h-full flex flex-col border-l border-gray-900 shadow-2xl z-40 animate-in slide-in-from-right duration-500 relative">
+
+              {/* Sidebar Tabs */}
+              <div className="flex border-b border-gray-100">
+                <button
+                  onClick={() => setEditTab('generate')}
+                  className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${editTab === 'generate' ? 'text-black border-b-2 border-black bg-gray-50' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  Génération
                 </button>
-              </form>
+                <button
+                  onClick={() => setEditTab('edit')}
+                  disabled={!studioImagePreview}
+                  className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${editTab === 'edit' ? 'text-black border-b-2 border-black bg-gray-50' : 'text-gray-400 hover:text-gray-600 disabled:opacity-30'}`}
+                >
+                  Retouche
+                </button>
+              </div>
+
+              <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
+
+                {editTab === 'generate' ? (
+                  <>
+                    {/* Section: Upload Image Reference */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest">Image de référence (Optionnel)</label>
+                      </div>
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${importedImage ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'}`}
+                      >
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImportImage} />
+                        {importedImage ? (
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-gray-200">
+                              <img src={importedImage} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="text-left">
+                              <p className="text-xs font-bold text-gray-900">Image chargée</p>
+                              <p className="text-[10px] text-gray-500">Sera utilisée comme inspiration</p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setImportedImage(null); if (studioImagePreview === importedImage) setStudioImagePreview(null); }}
+                              className="ml-auto p-2 hover:bg-gray-200 rounded-full"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Upload size={24} className="mx-auto text-gray-400" />
+                            <p className="text-xs font-medium text-gray-500">Cliquez pour importer une image</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section: Prompt */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest">Le Brief Créatif</label>
+                        <span className="text-[10px] text-gray-400 font-mono">AI-POWERED</span>
+                      </div>
+                      <div className="relative group">
+                        <textarea
+                          value={studioPrompt}
+                          onChange={e => setStudioPrompt(e.target.value)}
+                          rows={8}
+                          className="w-full bg-gray-50 border border-transparent focus:border-gray-200 focus:bg-white rounded-2xl p-4 text-gray-900 font-medium text-sm outline-none transition-all resize-none leading-relaxed shadow-inner placeholder:text-gray-400"
+                          placeholder="Décrivez votre vision..."
+                        />
+                        <div className="absolute bottom-3 right-3 p-1.5 bg-white rounded-lg shadow-sm border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Wand2 size={12} className="text-purple-500" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section: Format */}
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-gray-900 uppercase tracking-widest">Format</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: '16:9', icon: Monitor, label: 'Paysage' },
+                          { id: '1:1', icon: LayoutGrid, label: 'Carré' },
+                          { id: '9:16', icon: Smartphone, label: 'Story' }
+                        ].map(ratio => (
+                          <button
+                            key={ratio.id}
+                            onClick={() => setAspectRatio(ratio.id as any)}
+                            className={`py-3 rounded-xl flex flex-col items-center justify-center gap-2 transition-all border ${aspectRatio === ratio.id
+                              ? 'bg-black text-white border-black shadow-lg scale-105'
+                              : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300 hover:text-gray-600'}`}
+                          >
+                            <ratio.icon size={18} strokeWidth={aspectRatio === ratio.id ? 2.5 : 2} />
+                            <span className="text-[9px] font-bold">{ratio.id}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section: Style */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest">Direction Artistique</label>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {VISUAL_STYLES.map(style => (
+                          <button
+                            key={style.id}
+                            onClick={() => setSelectedStyle(style)}
+                            className={`group relative overflow-hidden rounded-xl border transition-all duration-300 text-left h-24 ${selectedStyle.id === style.id
+                              ? 'border-black ring-1 ring-black shadow-xl scale-[1.02]'
+                              : 'border-transparent hover:border-gray-200 bg-gray-50'}`}
+                          >
+                            <img src={style.preview} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                            <div className="absolute bottom-0 left-0 w-full p-3">
+                              <p className={`text-[10px] font-bold uppercase tracking-wider ${selectedStyle.id === style.id ? 'text-white' : 'text-gray-200'}`}>{style.name}</p>
+                            </div>
+                            {selectedStyle.id === style.id && (
+                              <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-black shadow-sm">
+                                <Check size={10} strokeWidth={3} />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // EDIT TAB CONTENT
+                  <div className="space-y-8 animate-in fade-in duration-300">
+                    <div className="p-4 bg-blue-50 text-blue-800 rounded-2xl text-xs font-medium border border-blue-100">
+                      Ajustez l'apparence de l'image. Ces réglages seront appliqués à l'importation.
+                    </div>
+
+                    {/* Brightness */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                          <Sun size={14} /> Luminosité
+                        </label>
+                        <span className="text-xs font-bold text-gray-500">{imageFilters.brightness}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={imageFilters.brightness}
+                        onChange={e => setImageFilters({ ...imageFilters, brightness: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-black"
+                      />
+                    </div>
+
+                    {/* Contrast */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                          <Contrast size={14} /> Contraste
+                        </label>
+                        <span className="text-xs font-bold text-gray-500">{imageFilters.contrast}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={imageFilters.contrast}
+                        onChange={e => setImageFilters({ ...imageFilters, contrast: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-black"
+                      />
+                    </div>
+
+                    {/* Saturation */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                          <Droplets size={14} /> Saturation
+                        </label>
+                        <span className="text-xs font-bold text-gray-500">{imageFilters.saturation}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={imageFilters.saturation}
+                        onChange={e => setImageFilters({ ...imageFilters, saturation: parseInt(e.target.value) })}
+                        className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-black"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setImageFilters({ brightness: 100, contrast: 100, saturation: 100 })}
+                      className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                    >
+                      Réinitialiser
+                    </button>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Footer / Action */}
+              <div className="p-8 border-t border-gray-100 bg-gray-50/50 backdrop-blur-sm">
+                {editTab === 'generate' ? (
+                  <button
+                    onClick={handleGenerateImage}
+                    disabled={isGeneratingImage || !studioPrompt}
+                    className="w-full py-5 bg-black hover:bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:transform-none group"
+                  >
+                    {isGeneratingImage ? (
+                      <>
+                        <Loader2 className="animate-spin" size={18} />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={18} className="group-hover:text-primary transition-colors" fill="currentColor" />
+                        <span>Générer</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={applyGeneratedImage} // Apply logic handles filter baking
+                    disabled={isSaving}
+                    className="w-full py-5 bg-primary hover:bg-amber-400 text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
+                  >
+                    <CheckCircle2 size={18} />
+                    <span>Valider les retouches</span>
+                  </button>
+                )}
+              </div>
             </div>
+
           </div>
         </div>
       )}

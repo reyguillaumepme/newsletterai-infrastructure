@@ -92,7 +92,8 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { prompt, aspectRatio = "1:1", model = "imagen-3.0-generate-001" } = await req.json();
+        const reqBody = await req.json();
+        const { prompt, aspectRatio = "1:1", model = "imagen-3.0-generate-001" } = reqBody;
 
         if (!prompt) throw new Error("Prompt is required");
 
@@ -113,10 +114,23 @@ Deno.serve(async (req) => {
             // Vertex AI Gemini Endpoint
             endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
 
+            // Build parts
+            const parts: any[] = [{ text: prompt }];
+
+            // Add reference image if provided (Multimodal Input for Gemini)
+            if (reqBody.referenceImage) {
+                parts.push({
+                    inlineData: {
+                        mimeType: "image/jpeg", // Assuming JPEG/PNG, Gemini is flexible
+                        data: reqBody.referenceImage
+                    }
+                });
+            }
+
             body = JSON.stringify({
                 contents: [{
                     role: "user",
-                    parts: [{ text: prompt }]
+                    parts: parts
                 }],
                 generationConfig: {
                     responseModalities: ["IMAGE"]
@@ -125,7 +139,7 @@ Deno.serve(async (req) => {
         }
         // GESTION IMAGEN (Default)
         else {
-            // Vertex AI Imagen Endpoint
+            // Vertex AI Imagen Endpoint (No image input support in this simple implementation)
             endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
 
             body = JSON.stringify({

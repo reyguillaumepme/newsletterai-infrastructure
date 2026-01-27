@@ -145,21 +145,31 @@ import { supabase } from "../lib/supabaseClient";
 export const generateImageFromPrompt = async (
   prompt: string,
   stylePrefix: string = "",
-  aspectRatio: "1:1" | "16:9" | "9:16" = "16:9"
+  aspectRatio: "1:1" | "16:9" | "9:16" = "16:9",
+  referenceImage: string | null = null
 ): Promise<string> => {
   try {
     // NO TEXT CONSTRAINT - Critical for newsletter images
     const noTextConstraint = "CRITICAL INSTRUCTION: This image must contain ABSOLUTELY NO TEXT, no letters, no words, no numbers, no captions, no watermarks, no logos, no typography, no writing of any kind.";
 
-    // Build the complete prompt
-    const fullPrompt = `${stylePrefix} ${prompt}. ${noTextConstraint}. Style: Clean, professional, suitable for email newsletter.`;
+    // Build the complete prompt with Aspect Ratio requirement
+    const ratioText = aspectRatio === "16:9" ? "Wide landscape aspect ratio (16:9)" : aspectRatio === "9:16" ? "Tall vertical aspect ratio (9:16)" : "Square aspect ratio (1:1)";
+    const fullPrompt = `${stylePrefix} ${prompt}. ${ratioText}. ${noTextConstraint}. Style: Clean, professional, suitable for email newsletter.`;
+
+    // Process reference image if exists (strip data url)
+    let cleanReferenceImage = null;
+    if (referenceImage) {
+      // Remove "data:image/xxx;base64," prefix if present
+      cleanReferenceImage = referenceImage.split(',')[1] || referenceImage;
+    }
 
     // Call Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('generate-image', {
       body: {
         prompt: fullPrompt,
         aspectRatio: aspectRatio,
-        model: "gemini-2.0-flash-exp"
+        model: "gemini-2.0-flash-exp",
+        referenceImage: cleanReferenceImage
       }
     });
 
