@@ -625,13 +625,32 @@ const NewsletterDetail: React.FC = () => {
             <div className="flex items-center gap-4 flex-1">
               <button onClick={() => startTransition(() => navigate('/newsletters'))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>
               <div className="flex-1 min-w-0">
-                <input
-                  type="text"
-                  value={newsletter?.subject || ''}
-                  onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
-                  onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
-                  className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
-                />
+                <div className="flex items-center gap-4">
+                  {/* TITLE INPUT */}
+                  <input
+                    type="text"
+                    value={newsletter?.subject || ''}
+                    onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                    onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
+                    className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
+                  />
+
+                  {/* SCHEDULE ACTION - RESTORED */}
+                  <button
+                    onClick={() => startTransition(() => setShowScheduleModal(true))}
+                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${newsletter?.status === 'scheduled'
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    title={newsletter?.status === 'scheduled' ? 'Modifier la planification' : 'Planifier l\'envoi'}
+                  >
+                    <Calendar size={16} />
+                    {newsletter?.status === 'scheduled' && newsletter.scheduled_at
+                      ? new Date(newsletter.scheduled_at).toLocaleDateString()
+                      : 'Planifier'
+                    }
+                  </button>
+                </div>
               </div>
 
               {/* Brand Selector */}
@@ -1123,6 +1142,74 @@ const NewsletterDetail: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send Test Email Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl scale-100 animate-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black uppercase tracking-tight">Planifier l'envoi</h3>
+              <button onClick={() => setShowScheduleModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Date d'envoi
+                </label>
+                <input
+                  type="date"
+                  value={scheduleData.date}
+                  onChange={(e) => setScheduleData({ ...scheduleData, date: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                  Heure d'envoi
+                </label>
+                <input
+                  type="time"
+                  value={scheduleData.time}
+                  onChange={(e) => setScheduleData({ ...scheduleData, time: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                {newsletter?.status === 'scheduled' && (
+                  <button
+                    onClick={() => {
+                      handleSaveNewsletter({ status: 'draft', scheduled_at: undefined });
+                      setShowScheduleModal(false);
+                    }}
+                    className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl font-bold text-sm hover:bg-red-100 transition-colors"
+                  >
+                    Annuler la planification
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (scheduleData.date && scheduleData.time) {
+                      const scheduledAt = new Date(`${scheduleData.date}T${scheduleData.time}`).toISOString();
+                      handleSaveNewsletter({ status: 'scheduled', scheduled_at: scheduledAt });
+                      setShowScheduleModal(false);
+                    }
+                  }}
+                  disabled={!scheduleData.date || !scheduleData.time}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+                >
+                  Confirmer
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
