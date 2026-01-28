@@ -114,8 +114,20 @@ const Ideas: React.FC = () => {
     });
   };
 
-  const handleOpenStudio = () => {
+  const handleOpenStudio = async () => {
     if (!selectedIdea) return;
+
+    // Auto-save before opening studio
+    setIsSaving(true);
+    try {
+      await databaseService.updateIdea(selectedIdea.id, selectedIdea);
+      await loadData();
+    } catch (e) {
+      console.error("Auto-save failed", e);
+    } finally {
+      setIsSaving(false);
+    }
+
     startTransition(() => {
       // Reset states
       setStudioPrompt(selectedIdea.image_prompt || selectedIdea.title);
@@ -222,7 +234,7 @@ const Ideas: React.FC = () => {
         {/* Content Section */}
         <div className="flex-1 p-5 flex flex-col">
           <div className="mb-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1 block">{idea.source_type || 'Idée'}</span>
+
             <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">{idea.title}</h3>
           </div>
 
@@ -232,7 +244,7 @@ const Ideas: React.FC = () => {
 
           <div className="pt-3 border-t border-gray-50 flex items-center justify-between mt-auto">
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
-              {idea.image_prompt && <span className="flex items-center gap-1 text-purple-500 bg-purple-50 px-2 py-1 rounded-md"><Sparkles size={10} /> IA Ready</span>}
+              {idea.image_prompt && <span className="flex items-center gap-1 text-purple-500 bg-purple-50 px-2 py-1 rounded-md"><Sparkles size={10} /> Prompt Généré</span>}
             </div>
             <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
               <Trash2 size={14} />
@@ -370,8 +382,8 @@ const Ideas: React.FC = () => {
           <h2 className="text-4xl font-black uppercase tracking-tighter text-gray-900">Banque d'Idées</h2>
           <p className="text-gray-500 font-medium mt-1">Vos concepts de contenu pour vos futures newsletters.</p>
         </div>
-        <button onClick={() => startTransition(() => setIsCreatingModalOpen(true))} className="bg-primary hover:bg-[#ffca28] text-gray-900 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1">
-          <Plus size={20} className="mr-2" /> Nouveau Concept
+        <button onClick={() => startTransition(() => setIsCreatingModalOpen(true))} className="bg-primary hover:bg-[#ffca28] text-gray-900 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1 flex items-center gap-2">
+          <Plus size={20} /> Nouveau Concept
         </button>
       </div>
 
@@ -619,7 +631,7 @@ const Ideas: React.FC = () => {
               <div className="pointer-events-auto flex items-center gap-4">
                 <div className="bg-black/90 backdrop-blur-xl rounded-full px-8 py-4 text-white flex items-center gap-4 shadow-2xl animate-in slide-in-from-left duration-700 border border-white/10 z-[100]">
                   <Palette size={28} className="text-primary animate-pulse" />
-                  <span className="text-2xl font-black uppercase tracking-widest text-white">Visual Studio</span>
+                  <span className="text-2xl font-black uppercase tracking-widest bg-gradient-to-r from-blue-500 to-fuchsia-500 bg-clip-text text-transparent">Visual Studio</span>
                 </div>
               </div>
               <button onClick={() => startTransition(() => setShowImageModal(false))} className="pointer-events-auto p-3 bg-white hover:bg-gray-200 rounded-full text-black transition-all hover:scale-110 shadow-xl"><X size={24} /></button>
@@ -636,7 +648,9 @@ const Ideas: React.FC = () => {
                   ${aspectRatio === '16:9' ? 'w-full max-w-5xl aspect-video rounded-xl' :
                   aspectRatio === '9:16' ? 'h-full max-h-[80vh] aspect-[9/16] rounded-xl' :
                     'w-full max-w-2xl aspect-square rounded-xl'
-                }`}>
+                }
+                  ${studioImagePreview ? 'ring-4 ring-offset-4 ring-offset-[#0f0f11] ring-primary/50 animate-pulse' : ''}
+              `}>
 
                 {isGeneratingImage ? (
                   <div className="flex flex-col items-center gap-4 animate-pulse z-10">

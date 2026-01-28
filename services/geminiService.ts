@@ -55,7 +55,7 @@ export const generateNewsletterHook = async (subject: string, articles: Idea[], 
   try {
     const articlesList = articles.map(a => `- ${a.title}`).join('\n');
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.0-flash",
       systemInstruction: `Tu es un copywriter expert. Ta mission est de rédiger l'accroche (l'intro) d'une newsletter.
 TON STYLE DOIT ÊTRE :
 - Direct et percutant (entre dans le vif du sujet tout de suite)
