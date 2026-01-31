@@ -66,6 +66,9 @@ const NewsletterDetail: React.FC = () => {
   const isDemo = currentUser?.email?.toLowerCase() === DEMO_USER_EMAIL;
 
   const [newsletter, setNewsletter] = useState<Newsletter | null>(null);
+
+  // New variable to check if newsletter is sent
+  const isSent = newsletter?.status === 'sent';
   const [brand, setBrand] = useState<Brand | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
@@ -632,15 +635,18 @@ const NewsletterDetail: React.FC = () => {
                     value={newsletter?.subject || ''}
                     onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
                     onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
-                    className="text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2"
+                    disabled={isSent}
+                    className={`text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2 ${isSent ? 'cursor-not-allowed text-gray-500' : ''}`}
                   />
 
                   {/* SCHEDULE ACTION - RESTORED */}
                   <button
                     onClick={() => startTransition(() => setShowScheduleModal(true))}
-                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${newsletter?.status === 'scheduled'
-                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    disabled={isSent}
+                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isSent ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
+                      newsletter?.status === 'scheduled'
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     title={newsletter?.status === 'scheduled' ? 'Modifier la planification' : 'Planifier l\'envoi'}
                   >
@@ -729,10 +735,14 @@ const NewsletterDetail: React.FC = () => {
                     <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary"><Quote size={20} /></div>
                     <h3 className="text-lg font-black uppercase">Texte d'accroche</h3>
                   </div>
-                  <button onClick={handleGenerateHook} disabled={isGeneratingHook || ideas.length === 0} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-gray-200">{isGeneratingHook ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} fill="currentColor" />} Générer par IA</button>
+                  <button onClick={handleGenerateHook} disabled={isGeneratingHook || ideas.length === 0 || isSent} className={`px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-gray-200 ${isSent ? 'opacity-50 cursor-not-allowed' : ''}`}>{isGeneratingHook ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} fill="currentColor" />} Générer par IA</button>
                 </div>
-                <div className="relative hook-editor flex-grow">
-                  <ReactQuill theme="snow" value={hookValue} onChange={setHookValue} onBlur={() => handleSaveNewsletter({ generated_content: hookValue })} modules={QUILL_MODULES} />
+                <div className={`relative hook-editor flex-grow ${isSent ? 'bg-gray-50' : ''}`}>
+                  {isSent ? (
+                    <div className="p-4 ql-editor" dangerouslySetInnerHTML={{ __html: hookValue }} />
+                  ) : (
+                    <ReactQuill theme="snow" value={hookValue} onChange={setHookValue} onBlur={() => handleSaveNewsletter({ generated_content: hookValue })} modules={QUILL_MODULES} />
+                  )}
                 </div>
               </div>
 
@@ -746,28 +756,32 @@ const NewsletterDetail: React.FC = () => {
                 {ideas.map((idea, index) => (
                   <div
                     key={idea.id}
-                    draggable
+                    draggable={!isSent}
                     onDragStart={(e) => handleDragStart(e, index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDrop={(e) => handleDrop(e, index)}
                     onClick={() => handleSelectIdea(idea)}
-                    className={`bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-move flex gap-5 relative group ${draggedIndex === index ? 'opacity-50' : ''
-                      }`}
+                    className={`bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm transition-all flex gap-5 relative group ${draggedIndex === index ? 'opacity-50' : ''
+                      } ${!isSent ? 'hover:shadow-lg cursor-move' : ''}`}
                   >
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <GripVertical size={20} />
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveIdea(idea.id);
-                      }}
-                      className="absolute right-3 top-3 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 z-10"
-                      title="Supprimer cet article"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                    <div className="w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-50 ml-6">
+                    {!isSent && (
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GripVertical size={20} />
+                      </div>
+                    )}
+                    {!isSent && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveIdea(idea.id);
+                        }}
+                        className="absolute right-3 top-3 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 z-10"
+                        title="Supprimer cet article"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                    <div className={`w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-50 ${isSent ? '' : 'ml-6'}`}>
                       {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={28} /></div>}
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
@@ -776,19 +790,21 @@ const NewsletterDetail: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                <button
-                  onClick={() => startTransition(() => setShowIdeaPicker(true))}
-                  disabled={ideas.length >= 5}
-                  className={`w-full py-8 border-3 border-dashed rounded-[2.5rem] transition-all flex flex-col items-center gap-3 ${ideas.length >= 5
-                    ? 'border-gray-50 text-gray-200 cursor-not-allowed bg-gray-50/50'
-                    : 'border-gray-100 text-gray-300 hover:border-primary/20 hover:text-primary'
-                    }`}
-                >
-                  <Plus size={22} />
-                  <span className="font-black text-[9px] uppercase tracking-widest">
-                    {ideas.length >= 5 ? 'Maximum 5 blocs atteint' : 'Ajouter un bloc'}
-                  </span>
-                </button>
+                {!isSent && (
+                  <button
+                    onClick={() => startTransition(() => setShowIdeaPicker(true))}
+                    disabled={ideas.length >= 5}
+                    className={`w-full py-8 border-3 border-dashed rounded-[2.5rem] transition-all flex flex-col items-center gap-3 ${ideas.length >= 5
+                      ? 'border-gray-50 text-gray-200 cursor-not-allowed bg-gray-50/50'
+                      : 'border-gray-100 text-gray-300 hover:border-primary/20 hover:text-primary'
+                      }`}
+                  >
+                    <Plus size={22} />
+                    <span className="font-black text-[9px] uppercase tracking-widest">
+                      {ideas.length >= 5 ? 'Maximum 5 blocs atteint' : 'Ajouter un bloc'}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Bloc d'édition du footer */}
@@ -799,24 +815,30 @@ const NewsletterDetail: React.FC = () => {
                   </div>
                   <button
                     onClick={() => {
-                      if (!newsletter) return;
+                      if (!newsletter || isSent) return;
                       const newVal = !newsletter.show_footer_logo;
                       handleSaveNewsletter({ show_footer_logo: newVal });
                     }}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${newsletter?.show_footer_logo ? 'bg-primary/20 text-primary border-2 border-primary/20' : 'bg-gray-50 text-gray-400 border-2 border-gray-100'
+                    disabled={isSent}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${isSent ? 'bg-gray-50 text-gray-300 border-2 border-gray-100 cursor-not-allowed' :
+                      newsletter?.show_footer_logo ? 'bg-primary/20 text-primary border-2 border-primary/20' : 'bg-gray-50 text-gray-400 border-2 border-gray-100'
                       }`}
                   >
                     <ImageIcon size={14} /> Logo Footer: {newsletter?.show_footer_logo ? 'Activé' : 'Désactivé'}
                   </button>
                 </div>
-                <div className="relative footer-editor flex-grow">
-                  <ReactQuill
-                    theme="snow"
-                    value={footerValue}
-                    onChange={setFooterValue}
-                    onBlur={() => handleSaveNewsletter({ footer_content: footerValue })}
-                    modules={QUILL_MODULES}
-                  />
+                <div className={`relative footer-editor flex-grow ${isSent ? 'bg-gray-50' : ''}`}>
+                  {isSent ? (
+                    <div className="p-4 ql-editor" dangerouslySetInnerHTML={{ __html: footerValue }} />
+                  ) : (
+                    <ReactQuill
+                      theme="snow"
+                      value={footerValue}
+                      onChange={setFooterValue}
+                      onBlur={() => handleSaveNewsletter({ footer_content: footerValue })}
+                      modules={QUILL_MODULES}
+                    />
+                  )}
                 </div>
               </div>
             </div>
