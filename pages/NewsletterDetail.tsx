@@ -66,6 +66,7 @@ const NewsletterDetail: React.FC = () => {
   const isDemo = currentUser?.email?.toLowerCase() === DEMO_USER_EMAIL;
 
   const [newsletter, setNewsletter] = useState<Newsletter | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null); // New State for Profile
 
   // New variable to check if newsletter is sent
   const isSent = newsletter?.status === 'sent';
@@ -139,6 +140,10 @@ const NewsletterDetail: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // Fetch Profile for restrictions
+      const pData = await databaseService.fetchMyProfile();
+      setUserProfile(pData || { subscription_plan: 'free', credits: 5 }); // Fallback defaults
+
       // Charger les marques pour tous les cas (pas seulement isNew)
       const bData = await databaseService.fetchBrands();
       setBrands(bData || []);
@@ -321,9 +326,24 @@ const NewsletterDetail: React.FC = () => {
   const handleGenerateHook = async () => {
     if (!newsletter || ideas.length === 0) return;
     if (isDemo) { alert("IA inactive en démo."); return; }
+
+    // CREDIT CHECK
+    const currentCredits = userProfile?.credits ?? 0;
+    if (currentCredits <= 0) {
+      alert("⚠️ Crédits insuffisants !\n\nVous avez utilisé tous vos crédits IA. Passez à la version Pro pour recharger.");
+      return;
+    }
+
     setIsGeneratingHook(true);
     try {
       const hook = await generateNewsletterHook(newsletter?.subject || '', ideas, brand || undefined);
+
+      // DEDUCT CREDIT
+      const success = await databaseService.deductUserCredit(currentUser?.id || '');
+      if (success) {
+        setUserProfile((prev: any) => ({ ...prev, credits: Math.max(0, (prev?.credits || 0) - 1) }));
+      }
+
       const hookHtml = `<p>${hook}</p>`;
       startTransition(() => {
         setHookValue(hookHtml);
@@ -463,6 +483,12 @@ const NewsletterDetail: React.FC = () => {
   };
 
   const handleOpenPublishModal = () => {
+    // PLAN CHECK
+    if (userProfile?.subscription_plan === 'free') {
+      alert("🔒 Fonctionnalité Premium\n\nL'envoi réel de newsletters est réservé aux membres Pro et Elite.\n\nEn version gratuite, vous pouvez uniquement envoyer des emails de test.");
+      return;
+    }
+
     const errors = validateNewsletter();
     setValidationErrors(errors);
 
@@ -641,7 +667,13 @@ const NewsletterDetail: React.FC = () => {
 
                   {/* SCHEDULE ACTION - RESTORED */}
                   <button
-                    onClick={() => startTransition(() => setShowScheduleModal(true))}
+                    onClick={() => {
+                      if (userProfile?.subscription_plan === 'free') {
+                        alert("🔒 Fonctionnalité Premium\n\nLa planification est réservée aux membres Pro et Elite.");
+                        return;
+                      }
+                      startTransition(() => setShowScheduleModal(true))
+                    }}
                     disabled={isSent}
                     className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isSent ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
                       newsletter?.status === 'scheduled'

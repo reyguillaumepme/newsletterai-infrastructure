@@ -13,6 +13,8 @@ export interface Profile {
   brevo_api_key?: string;
   sender_name?: string;
   sender_email?: string;
+  subscription_plan?: 'free' | 'pro' | 'elite';
+  credits?: number;
 }
 
 export interface StrategyCTA {

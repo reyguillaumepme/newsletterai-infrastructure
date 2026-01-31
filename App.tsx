@@ -13,6 +13,8 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import Auth from './pages/Auth';
 import Unsubscribe from './pages/Unsubscribe';
+import LandingPage from './pages/LandingPage';
+import Profile from './pages/Profile';
 import { authService, getSupabaseClient } from './services/authService';
 import { databaseService } from './services/databaseService';
 
@@ -28,11 +30,11 @@ const App: React.FC = () => {
         supabase.auth.onAuthStateChange((event, session) => {
           if (session?.user) {
             authService.syncSupabaseUser(session.user).then(syncedUser => {
-               if (syncedUser) {
-                 startTransition(() => {
-                   setUser(syncedUser);
-                 });
-               }
+              if (syncedUser) {
+                startTransition(() => {
+                  setUser(syncedUser);
+                });
+              }
             });
           } else if (event === 'SIGNED_OUT') {
             startTransition(() => {
@@ -48,17 +50,17 @@ const App: React.FC = () => {
 
   const checkAuth = async () => {
     const currentUser = authService.getCurrentUser();
-    
+
     if (currentUser) {
       const hasLocalConfig = localStorage.getItem('SUPABASE_URL');
       if (!hasLocalConfig) {
         await authService.restoreConfigFromCloud();
       }
-      
+
       startTransition(() => {
         setUser(currentUser);
       });
-      
+
       await databaseService.testConnection();
       initSupabaseAuth();
     }
@@ -106,8 +108,9 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
-        
+
         {!user ? (
           <>
             <Route path="/auth" element={<Auth onLoginSuccess={handleLoginSuccess} />} />
@@ -133,6 +136,7 @@ const App: React.FC = () => {
                     <Route path="/brands/:id" element={<BrandDetail />} />
                     <Route path="/statistics" element={<Statistics />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>

@@ -195,6 +195,29 @@ export const databaseService = {
     });
   },
 
+  async deductUserCredit(userId: string): Promise<boolean> {
+    const user = authService.getCurrentUser();
+    if (!user || !isUsingCloud()) return true; // Assume success in demo/local
+
+    try {
+      const profile = await this.fetchMyProfile();
+      if (!profile || (profile.credits !== undefined && profile.credits <= 0)) {
+        return false;
+      }
+
+      const newCredits = (profile.credits || 0) - 1;
+      await this.updateProfile({ credits: newCredits });
+      return true;
+    } catch (e) {
+      console.error("Error deducting credit:", e);
+      return false;
+    }
+  },
+
+  async updateUserPlan(userId: string, plan: 'free' | 'pro' | 'elite', credits: number): Promise<void> {
+    await this.updateProfile({ subscription_plan: plan, credits: credits });
+  },
+
   async fetchBrands(): Promise<Brand[]> {
     if (!isUsingCloud()) return storage.get('brands');
     const { url, key } = getSupabaseConfig();
