@@ -24,7 +24,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'demo' | 'connected' | 'error'>('demo');
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'error'>('connected');
   const [isPending, startTransition] = useTransition();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     const checkConnection = async () => {
       const { url, key } = getSupabaseConfig();
       if (!url || !key) {
-        setConnectionStatus('demo');
+        setConnectionStatus('error');
         return;
       }
       const res = await databaseService.testConnection();
@@ -126,18 +126,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
       </nav>
 
       <div className="px-4 py-4">
-        <div className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${connectionStatus === 'connected' ? 'bg-green-50 border-green-100 text-green-600' :
-          connectionStatus === 'error' ? 'bg-red-50 border-red-100 text-red-600' :
-            'bg-yellow-50 border-yellow-100 text-yellow-700'
+        <div className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${connectionStatus === 'connected' ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600'
           }`}>
-          {connectionStatus === 'connected' ? <Zap size={16} fill="currentColor" /> :
-            connectionStatus === 'error' ? <ZapOff size={16} /> :
-              <Database size={16} />}
+          {connectionStatus === 'connected' ? <Zap size={16} fill="currentColor" /> : <ZapOff size={16} />}
           {!isCollapsed && (
             <span className="text-[10px] font-bold uppercase tracking-widest leading-none">
-              {connectionStatus === 'connected' ? 'Cloud Live' :
-                connectionStatus === 'error' ? 'Cloud Error' :
-                  'Local Demo'}
+              {connectionStatus === 'connected' ? 'Cloud Live' : 'Cloud Error'}
             </span>
           )}
         </div>

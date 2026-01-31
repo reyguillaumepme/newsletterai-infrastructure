@@ -1,6 +1,6 @@
 
 import { Brand, Newsletter, Idea, Statistics, Profile, Contact } from '../types';
-import { authService, getSupabaseConfig, DEMO_USER_EMAIL, getSupabaseClient } from './authService';
+import { authService, getSupabaseConfig, getSupabaseClient } from './authService';
 
 const getHeaders = async (key: string, forceRefresh = false) => {
   const token = await authService.getAccessToken();
@@ -30,8 +30,7 @@ const storage = {
 
 const isUsingCloud = () => {
   const { url, key } = getSupabaseConfig();
-  const user = authService.getCurrentUser();
-  return url && key && user?.email !== DEMO_USER_EMAIL;
+  return !!(url && key);
 };
 
 const compressImage = (base64Str: string, maxWidth = 800, quality = 0.7): Promise<Blob> => {

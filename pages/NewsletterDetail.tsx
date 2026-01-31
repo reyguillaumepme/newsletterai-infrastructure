@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 import { mailService } from '../services/mailService';
-import { authService, DEMO_USER_EMAIL } from '../services/authService';
+import { authService } from '../services/authService';
 import { generateNewsletterHook } from '../services/geminiService';
 import { Newsletter, Idea, Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
 
@@ -63,7 +63,7 @@ const NewsletterDetail: React.FC = () => {
   const navigate = useNavigate();
   const isNew = id === 'new';
   const currentUser = authService.getCurrentUser();
-  const isDemo = currentUser?.email?.toLowerCase() === DEMO_USER_EMAIL;
+  const isDemo = false;
 
   const [newsletter, setNewsletter] = useState<Newsletter | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null); // New State for Profile

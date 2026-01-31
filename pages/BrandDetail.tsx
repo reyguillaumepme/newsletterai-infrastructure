@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Save, 
-  Sparkles, 
-  ChevronDown, 
-  ChevronUp, 
-  Target, 
-  User, 
+import {
+  ArrowLeft,
+  Save,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  User,
   Zap,
   Loader2,
   CheckCircle2,
@@ -34,19 +34,19 @@ import {
 } from 'lucide-react';
 import { generateNewsletterStrategy, generateWritingFramework } from '../services/geminiService';
 import { databaseService } from '../services/databaseService';
-import { authService, DEMO_USER_EMAIL } from '../services/authService';
+import { authService } from '../services/authService';
 import { Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
 
 const BrandDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // États globaux
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'identity' | 'audience'>('identity');
-  
+
   // États Identité & Stratégie
   const [isLoading, setIsLoading] = useState<{ strategy: boolean; framework: boolean }>({ strategy: false, framework: false });
   const [sections, setSections] = useState({ intro: true, context: true, ctas: false, strategy: false });
@@ -63,7 +63,7 @@ const BrandDetail: React.FC = () => {
   const [isSavingContact, setIsSavingContact] = useState(false);
 
   const currentUser = authService.getCurrentUser();
-  const isDemo = currentUser?.email?.toLowerCase() === DEMO_USER_EMAIL;
+  const isDemo = false;
 
   // CHARGEMENT INITIAL
   useEffect(() => {
@@ -121,7 +121,7 @@ const BrandDetail: React.FC = () => {
     if (!brand || !id) return;
     setIsSaving(true);
     try {
-      const payload: Partial<Brand> = { 
+      const payload: Partial<Brand> = {
         brand_name: brand.brand_name,
         description: brand.description,
         target_audience: brand.target_audience,
@@ -176,8 +176,8 @@ const BrandDetail: React.FC = () => {
       const result = await generateNewsletterStrategy(brand);
       setStrategy(result);
       setSections(prev => ({ ...prev, strategy: true }));
-      await databaseService.updateBrand(brand.id, { 
-        newsletter_strategy: JSON.stringify(result) 
+      await databaseService.updateBrand(brand.id, {
+        newsletter_strategy: JSON.stringify(result)
       });
     } catch (e) {
       console.error("Strategy generation error:", e);
@@ -233,8 +233,8 @@ const BrandDetail: React.FC = () => {
     }
   };
 
-  const filteredContacts = contacts.filter(c => 
-    c.email.toLowerCase().includes(contactSearch.toLowerCase()) || 
+  const filteredContacts = contacts.filter(c =>
+    c.email.toLowerCase().includes(contactSearch.toLowerCase()) ||
     c.last_name?.toLowerCase().includes(contactSearch.toLowerCase())
   );
 
@@ -248,7 +248,7 @@ const BrandDetail: React.FC = () => {
   if (!brand) return null;
 
   const SectionHeader = ({ title, icon: Icon, sectionKey }: { title: string, icon: any, sectionKey: keyof typeof sections }) => (
-    <button 
+    <button
       onClick={() => toggleSection(sectionKey)}
       className="w-full flex justify-between items-center p-6 border-b border-gray-100 hover:bg-gray-50 transition-colors"
     >
@@ -276,14 +276,14 @@ const BrandDetail: React.FC = () => {
 
       {/* TABS SWITCHER */}
       <div className="flex p-1.5 bg-gray-100 rounded-2xl w-fit">
-        <button 
-          onClick={() => setActiveTab('identity')} 
+        <button
+          onClick={() => setActiveTab('identity')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${activeTab === 'identity' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Sparkles size={14} /> 🧬 Identité & Stratégie
         </button>
-        <button 
-          onClick={() => setActiveTab('audience')} 
+        <button
+          onClick={() => setActiveTab('audience')}
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${activeTab === 'audience' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Users size={14} /> 👥 Audience & Diffusion
@@ -293,7 +293,7 @@ const BrandDetail: React.FC = () => {
       {/* CONTENU ONGLET IDENTITY */}
       {activeTab === 'identity' && (
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          
+
           {/* Identité & Logo */}
           <div>
             <SectionHeader title="Identité & Logo" icon={User} sectionKey="intro" />
@@ -318,16 +318,16 @@ const BrandDetail: React.FC = () => {
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nom</label>
-                        <input type="text" value={brand.brand_name} onChange={e => setBrand({...brand, brand_name: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold" />
+                        <input type="text" value={brand.brand_name} onChange={e => setBrand({ ...brand, brand_name: e.target.value })} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Audience</label>
-                        <input type="text" value={brand.target_audience} onChange={e => setBrand({...brand, target_audience: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold" />
+                        <input type="text" value={brand.target_audience} onChange={e => setBrand({ ...brand, target_audience: e.target.value })} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
-                      <textarea rows={4} value={brand.description} onChange={e => setBrand({...brand, description: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold resize-none" />
+                      <textarea rows={4} value={brand.description} onChange={e => setBrand({ ...brand, description: e.target.value })} className="w-full bg-gray-50 border-none rounded-2xl px-5 py-3 font-bold resize-none" />
                     </div>
                   </div>
                 </div>
@@ -353,10 +353,10 @@ const BrandDetail: React.FC = () => {
                   <div key={item.field} className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{item.label}</label>
                     <div className="bg-slate-50 border border-slate-100 rounded-3xl p-5 hover:bg-white hover:shadow-sm transition-all">
-                      <textarea 
-                        rows={4} 
-                        value={brand[item.field as keyof Brand] as string || ''} 
-                        onChange={e => setBrand({...brand, [item.field]: e.target.value})} 
+                      <textarea
+                        rows={4}
+                        value={brand[item.field as keyof Brand] as string || ''}
+                        onChange={e => setBrand({ ...brand, [item.field]: e.target.value })}
                         className="w-full bg-transparent border-none outline-none text-slate-700 text-sm font-medium leading-relaxed resize-none focus:ring-0"
                         placeholder="Saisissez les détails ici..."
                       />
@@ -377,7 +377,7 @@ const BrandDetail: React.FC = () => {
                     <h4 className="text-white font-bold uppercase text-xs tracking-widest">Boutons de conversion</h4>
                     <p className="text-slate-500 text-[10px]">Configurez vos liens de redirection fixes pour vos newsletters.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={addCTA}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all"
                   >
@@ -388,25 +388,25 @@ const BrandDetail: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {manualCTAs.map(cta => (
                     <div key={cta.id} className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-5 group relative">
-                      <button 
+                      <button
                         onClick={() => removeCTA(cta.id)}
                         className="absolute top-4 right-4 text-white/20 hover:text-red-400 transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>
-                      
+
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Label du bouton</label>
-                          <input 
-                            type="text" 
-                            value={cta.label} 
+                          <input
+                            type="text"
+                            value={cta.label}
                             onChange={e => updateManualCTA(cta.id, { label: e.target.value })}
                             className="bg-transparent border-none outline-none text-white font-bold text-base w-full focus:ring-0"
                             placeholder="Ex: Réserver un appel"
                           />
                         </div>
-                        <button 
+                        <button
                           onClick={() => updateManualCTA(cta.id, { enabled: !cta.enabled })}
                           className={`p-1.5 rounded-xl transition-all ${cta.enabled ? 'text-indigo-400' : 'text-slate-600'}`}
                         >
@@ -418,9 +418,9 @@ const BrandDetail: React.FC = () => {
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Lien de redirection</label>
                         <div className="flex items-center gap-3 bg-black/40 rounded-xl px-4 py-3 border border-white/5">
                           <LinkIcon size={14} className="text-indigo-400 shrink-0" />
-                          <input 
-                            type="text" 
-                            value={cta.url} 
+                          <input
+                            type="text"
+                            value={cta.url}
                             onChange={e => updateManualCTA(cta.id, { url: e.target.value })}
                             className="bg-transparent border-none outline-none text-indigo-100 text-[11px] w-full focus:ring-0 font-mono"
                             placeholder="https://votre-calendly.com"
@@ -441,35 +441,35 @@ const BrandDetail: React.FC = () => {
               <div className="p-8 bg-slate-50/50 space-y-6">
                 {strategy ? (
                   <div className="space-y-8 animate-in fade-in zoom-in duration-500">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Ton de communication</p>
-                          <p className="text-lg font-bold text-slate-900">{strategy.tone}</p>
-                        </div>
-                        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                          <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Fréquence optimale</p>
-                          <p className="text-lg font-bold text-slate-900">{strategy.frequency}</p>
-                        </div>
-                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Ton de communication</p>
+                        <p className="text-lg font-bold text-slate-900">{strategy.tone}</p>
+                      </div>
+                      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2">Fréquence optimale</p>
+                        <p className="text-lg font-bold text-slate-900">{strategy.frequency}</p>
+                      </div>
+                    </div>
 
-                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-6">Piliers de contenu thématiques</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {strategy.pillars.map((p, idx) => (
-                            <div key={idx} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-start gap-3">
-                              <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 font-bold text-[10px]">{idx + 1}</div>
-                              <div>
-                                 <h4 className="font-bold text-slate-900 text-sm mb-1 uppercase tracking-tight">{p.title}</h4>
-                                 <p className="text-[11px] text-slate-500 leading-relaxed">{p.description}</p>
-                              </div>
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                      <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-6">Piliers de contenu thématiques</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {strategy.pillars.map((p, idx) => (
+                          <div key={idx} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-start gap-3">
+                            <div className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0 font-bold text-[10px]">{idx + 1}</div>
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-sm mb-1 uppercase tracking-tight">{p.title}</h4>
+                              <p className="text-[11px] text-slate-500 leading-relaxed">{p.description}</p>
                             </div>
-                          ))}
-                        </div>
-                     </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-                     <button onClick={handleGenerateStrategy} disabled={isLoading.strategy} className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-all ml-2">
-                        {isLoading.strategy ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Re-générer la stratégie éditoriale
-                     </button>
+                    <button onClick={handleGenerateStrategy} disabled={isLoading.strategy} className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-all ml-2">
+                      {isLoading.strategy ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Re-générer la stratégie éditoriale
+                    </button>
                   </div>
                 ) : (
                   <div className="py-20 text-center space-y-6 bg-white rounded-[3rem] border border-dashed border-slate-200">
@@ -492,137 +492,136 @@ const BrandDetail: React.FC = () => {
       {/* CONTENU ONGLET AUDIENCE */}
       {activeTab === 'audience' && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-           
-           {/* SECTION EXPÉDITEUR BREVO */}
-           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-               <div className="flex items-center gap-4 p-6 border-b border-gray-50">
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Mail size={20} /></div>
-                  <h3 className="text-lg font-bold uppercase tracking-tight">Configuration Expéditeur</h3>
-               </div>
-               <div className="p-8 space-y-6">
-                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-4 items-start">
-                     <Info size={18} className="text-blue-500 mt-1 shrink-0" />
-                     <div className="space-y-1">
-                        <p className="text-[11px] font-black uppercase text-blue-600 tracking-widest">Paramètres d'envoi</p>
-                        <p className="text-[11px] text-blue-800 leading-relaxed italic">
-                          Ces réglages priment sur vos paramètres globaux lors de l'envoi de newsletters pour cette marque. 
-                          <strong>L'adresse email doit impérativement être validée dans vos "Senders" sur Brevo.</strong>
-                        </p>
-                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom du sender</label>
-                        <input 
-                          type="text" 
-                          value={brand.sender_name || ''} 
-                          onChange={e => setBrand({...brand, sender_name: e.target.value})} 
-                          className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-primary/20 outline-none transition-all" 
-                          placeholder="Ex: Sophie de MyBrand"
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email du sender</label>
-                        <input 
-                          type="email" 
-                          value={brand.sender_email || ''} 
-                          onChange={e => setBrand({...brand, sender_email: e.target.value})} 
-                          className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-primary/20 outline-none transition-all" 
-                          placeholder="sophie@mon-domaine.com"
-                        />
-                     </div>
-                  </div>
-               </div>
-           </div>
-
-           {/* SECTION BASE CONTACTS */}
-           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-              <div className="flex items-center justify-between p-6 border-b border-gray-50">
-                  <div className="flex items-center gap-4">
-                     <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Users size={20} /></div>
-                     <h3 className="text-lg font-bold uppercase tracking-tight">Base de Contacts</h3>
-                  </div>
-                  <div className="flex gap-2">
-                     <button className="p-3 hover:bg-gray-50 rounded-xl border border-gray-100 text-gray-400 transition-all"><FileUp size={18} /></button>
-                     <button onClick={() => { setEditingContact({}); setIsContactModalOpen(true); }} className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all">
-                        <Plus size={14} /> Ajouter
-                     </button>
-                  </div>
+          {/* SECTION EXPÉDITEUR BREVO */}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-4 p-6 border-b border-gray-50">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Mail size={20} /></div>
+              <h3 className="text-lg font-bold uppercase tracking-tight">Configuration Expéditeur</h3>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-4 items-start">
+                <Info size={18} className="text-blue-500 mt-1 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-[11px] font-black uppercase text-blue-600 tracking-widest">Paramètres d'envoi</p>
+                  <p className="text-[11px] text-blue-800 leading-relaxed italic">
+                    Ces réglages priment sur vos paramètres globaux lors de l'envoi de newsletters pour cette marque.
+                    <strong>L'adresse email doit impérativement être validée dans vos "Senders" sur Brevo.</strong>
+                  </p>
+                </div>
               </div>
 
-              {/* TOOLBAR */}
-              <div className="p-4 bg-gray-50/50 flex gap-4 items-center border-b border-gray-50">
-                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input 
-                      type="text" 
-                      value={contactSearch}
-                      onChange={e => setContactSearch(e.target.value)}
-                      placeholder="Rechercher par email ou nom..." 
-                      className="w-full bg-white border border-gray-100 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
-                    />
-                 </div>
-                 <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-500 hover:text-gray-900 transition-all">
-                    <Filter size={14} /> Filtres
-                 </button>
-                 <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-500 hover:text-gray-900 transition-all">
-                    <Download size={14} /> Export
-                 </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom du sender</label>
+                  <input
+                    type="text"
+                    value={brand.sender_name || ''}
+                    onChange={e => setBrand({ ...brand, sender_name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="Ex: Sophie de MyBrand"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email du sender</label>
+                  <input
+                    type="email"
+                    value={brand.sender_email || ''}
+                    onChange={e => setBrand({ ...brand, sender_email: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="sophie@mon-domaine.com"
+                  />
+                </div>
               </div>
+            </div>
+          </div>
 
-              {/* TABLEAU */}
-              <div className="flex-1 overflow-x-auto">
-                 {isLoadingContacts ? (
-                    <div className="flex flex-col items-center justify-center h-40 gap-4">
-                       <Loader2 className="animate-spin text-emerald-500" size={32} />
-                    </div>
-                 ) : filteredContacts.length > 0 ? (
-                    <table className="w-full text-left">
-                       <thead className="bg-gray-50/50">
-                          <tr>
-                             <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Email</th>
-                             <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Nom Complet</th>
-                             <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Statut</th>
-                             <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
-                          </tr>
-                       </thead>
-                       <tbody className="divide-y divide-gray-50">
-                          {filteredContacts.map(contact => (
-                             <tr key={contact.id} className="group hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 font-bold text-sm text-gray-900">{contact.email}</td>
-                                <td className="px-6 py-4 text-xs font-medium text-gray-500">{contact.first_name} {contact.last_name}</td>
-                                <td className="px-6 py-4">
-                                   <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border ${
-                                      contact.status === 'subscribed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                      contact.status === 'unsubscribed' ? 'bg-gray-100 text-gray-500 border-gray-200' :
-                                      'bg-red-50 text-red-600 border-red-100'
-                                   }`}>
-                                      {contact.status}
-                                   </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => { setEditingContact(contact); setIsContactModalOpen(true); }} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-400 hover:text-gray-900 shadow-sm transition-all"><MoreHorizontal size={14} /></button>
-                                      <button onClick={() => handleDeleteContact(contact.id)} className="p-2 bg-white border border-gray-100 rounded-lg text-red-400 hover:text-red-600 shadow-sm transition-all"><Trash2 size={14} /></button>
-                                   </div>
-                                </td>
-                             </tr>
-                          ))}
-                       </tbody>
-                    </table>
-                 ) : (
-                    <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
-                       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"><Users size={32} /></div>
-                       <div className="space-y-1">
-                          <p className="font-bold text-gray-900">Aucun contact trouvé</p>
-                          <p className="text-xs text-gray-400">Importez votre liste ou ajoutez un contact manuellement.</p>
-                       </div>
-                       <button onClick={() => { setEditingContact({}); setIsContactModalOpen(true); }} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Ajouter le premier</button>
-                    </div>
-                 )}
+          {/* SECTION BASE CONTACTS */}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+            <div className="flex items-center justify-between p-6 border-b border-gray-50">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Users size={20} /></div>
+                <h3 className="text-lg font-bold uppercase tracking-tight">Base de Contacts</h3>
               </div>
-           </div>
+              <div className="flex gap-2">
+                <button className="p-3 hover:bg-gray-50 rounded-xl border border-gray-100 text-gray-400 transition-all"><FileUp size={18} /></button>
+                <button onClick={() => { setEditingContact({}); setIsContactModalOpen(true); }} className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all">
+                  <Plus size={14} /> Ajouter
+                </button>
+              </div>
+            </div>
+
+            {/* TOOLBAR */}
+            <div className="p-4 bg-gray-50/50 flex gap-4 items-center border-b border-gray-50">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  value={contactSearch}
+                  onChange={e => setContactSearch(e.target.value)}
+                  placeholder="Rechercher par email ou nom..."
+                  className="w-full bg-white border border-gray-100 rounded-xl pl-10 pr-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
+                />
+              </div>
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-500 hover:text-gray-900 transition-all">
+                <Filter size={14} /> Filtres
+              </button>
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase text-gray-500 hover:text-gray-900 transition-all">
+                <Download size={14} /> Export
+              </button>
+            </div>
+
+            {/* TABLEAU */}
+            <div className="flex-1 overflow-x-auto">
+              {isLoadingContacts ? (
+                <div className="flex flex-col items-center justify-center h-40 gap-4">
+                  <Loader2 className="animate-spin text-emerald-500" size={32} />
+                </div>
+              ) : filteredContacts.length > 0 ? (
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50/50">
+                    <tr>
+                      <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Email</th>
+                      <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Nom Complet</th>
+                      <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">Statut</th>
+                      <th className="px-6 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredContacts.map(contact => (
+                      <tr key={contact.id} className="group hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-sm text-gray-900">{contact.email}</td>
+                        <td className="px-6 py-4 text-xs font-medium text-gray-500">{contact.first_name} {contact.last_name}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border ${contact.status === 'subscribed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                              contact.status === 'unsubscribed' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                                'bg-red-50 text-red-600 border-red-100'
+                            }`}>
+                            {contact.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingContact(contact); setIsContactModalOpen(true); }} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-400 hover:text-gray-900 shadow-sm transition-all"><MoreHorizontal size={14} /></button>
+                            <button onClick={() => handleDeleteContact(contact.id)} className="p-2 bg-white border border-gray-100 rounded-lg text-red-400 hover:text-red-600 shadow-sm transition-all"><Trash2 size={14} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300"><Users size={32} /></div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-900">Aucun contact trouvé</p>
+                    <p className="text-xs text-gray-400">Importez votre liste ou ajoutez un contact manuellement.</p>
+                  </div>
+                  <button onClick={() => { setEditingContact({}); setIsContactModalOpen(true); }} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Ajouter le premier</button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -638,42 +637,42 @@ const BrandDetail: React.FC = () => {
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
             <div className="p-8 space-y-6">
-               <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold flex items-center gap-3">
-                     <UserPlus size={24} className="text-emerald-500" />
-                     {editingContact.id ? 'Modifier Contact' : 'Nouveau Contact'}
-                  </h3>
-                  <button onClick={() => setIsContactModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={20} /></button>
-               </div>
-               <form onSubmit={handleSaveContact} className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <UserPlus size={24} className="text-emerald-500" />
+                  {editingContact.id ? 'Modifier Contact' : 'Nouveau Contact'}
+                </h3>
+                <button onClick={() => setIsContactModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={20} /></button>
+              </div>
+              <form onSubmit={handleSaveContact} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                  <input required type="email" value={editingContact.email || ''} onChange={e => setEditingContact({ ...editingContact, email: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="email@exemple.com" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-                     <input required type="email" value={editingContact.email || ''} onChange={e => setEditingContact({...editingContact, email: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="email@exemple.com" />
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Prénom</label>
+                    <input value={editingContact.first_name || ''} onChange={e => setEditingContact({ ...editingContact, first_name: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="Jean" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Prénom</label>
-                        <input value={editingContact.first_name || ''} onChange={e => setEditingContact({...editingContact, first_name: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="Jean" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom</label>
-                        <input value={editingContact.last_name || ''} onChange={e => setEditingContact({...editingContact, last_name: e.target.value})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="Dupont" />
-                     </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom</label>
+                    <input value={editingContact.last_name || ''} onChange={e => setEditingContact({ ...editingContact, last_name: e.target.value })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold" placeholder="Dupont" />
                   </div>
-                  {editingContact.id && (
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Statut</label>
-                        <select value={editingContact.status} onChange={e => setEditingContact({...editingContact, status: e.target.value as any})} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold">
-                           <option value="subscribed">Abonné</option>
-                           <option value="unsubscribed">Désabonné</option>
-                           <option value="bounced">Rejeté (Bounce)</option>
-                        </select>
-                     </div>
-                  )}
-                  <button type="submit" disabled={isSavingContact} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-lg transition-all hover:-translate-y-1 flex items-center justify-center gap-2 mt-4">
-                     {isSavingContact ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />} Enregistrer
-                  </button>
-               </form>
+                </div>
+                {editingContact.id && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Statut</label>
+                    <select value={editingContact.status} onChange={e => setEditingContact({ ...editingContact, status: e.target.value as any })} className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-emerald-100 transition-all text-sm font-bold">
+                      <option value="subscribed">Abonné</option>
+                      <option value="unsubscribed">Désabonné</option>
+                      <option value="bounced">Rejeté (Bounce)</option>
+                    </select>
+                  </div>
+                )}
+                <button type="submit" disabled={isSavingContact} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-lg transition-all hover:-translate-y-1 flex items-center justify-center gap-2 mt-4">
+                  {isSavingContact ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />} Enregistrer
+                </button>
+              </form>
             </div>
           </div>
         </div>

@@ -35,7 +35,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
-import { authService, DEMO_USER_EMAIL } from '../services/authService';
+import { authService } from '../services/authService';
 import { enhanceIdeaWithAI, generateImageFromPrompt } from '../services/geminiService';
 import { Idea, Brand } from '../types';
 
@@ -93,7 +93,7 @@ const Ideas: React.FC = () => {
   const [newIdea, setNewIdea] = useState({ title: '', brand_id: '', content: '' });
 
   const user = authService.getCurrentUser();
-  const isDemo = user?.email?.toLowerCase() === DEMO_USER_EMAIL;
+  const isDemo = false;
 
   const loadData = async () => {
     setIsLoading(true);
@@ -246,7 +246,7 @@ const Ideas: React.FC = () => {
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
               {idea.image_prompt && <span className="flex items-center gap-1 text-purple-500 bg-purple-50 px-2 py-1 rounded-md"><Sparkles size={10} /> Prompt Généré</span>}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); startTransition(() => databaseService.deleteIdea(idea.id).then(loadData)); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+            <button onClick={(e) => { e.stopPropagation(); startTransition(() => { databaseService.deleteIdea(idea.id).then(loadData); }); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
               <Trash2 size={14} />
             </button>
           </div>

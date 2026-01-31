@@ -2,9 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPER_USER_EMAIL = "rey.guillaume.pme@gmail.com";
-// Export DEMO_USER_EMAIL to fix the import error in databaseService.ts
-export const DEMO_USER_EMAIL = "cloud.demo@nwsletteria.online";
-
 // Identifiants de l'infrastructure Maître (Infrastruture partagée par défaut)
 export const MASTER_CONFIG = {
   url: "https://jssfgxhacpjiefkgalyz.supabase.co",
@@ -15,21 +12,9 @@ export const MASTER_CONFIG = {
  * Récupère la configuration Supabase active.
  */
 export const getSupabaseConfig = () => {
-  const userJson = localStorage.getItem('newsletter_ai_user');
-  let isDemoUser = false;
-  
-  if (userJson) {
-    try {
-      const user = JSON.parse(userJson);
-      isDemoUser = user?.email?.toLowerCase() === DEMO_USER_EMAIL;
-    } catch (e) {}
-  }
-
-  if (isDemoUser) return { url: '', key: '' };
-
   const url = localStorage.getItem('SUPABASE_URL')?.trim();
   const key = localStorage.getItem('SUPABASE_ANON_KEY')?.trim();
-  
+
   return {
     url: url || MASTER_CONFIG.url,
     key: key || MASTER_CONFIG.key
@@ -61,7 +46,7 @@ const saveFakeCloudMetadata = (email: string, metadata: any) => {
     const cloud = JSON.parse(localStorage.getItem('newsletter_ai_fake_cloud') || '{}');
     cloud[email.toLowerCase()] = { ...cloud[email.toLowerCase()], ...metadata };
     localStorage.setItem('newsletter_ai_fake_cloud', JSON.stringify(cloud));
-  } catch (e) {}
+  } catch (e) { }
 };
 
 export const authService = {
@@ -86,50 +71,31 @@ export const authService = {
   isAdmin: () => authService.isSuperAdmin(),
   isSuperAdmin: () => authService.getCurrentUser()?.email?.toLowerCase() === SUPER_USER_EMAIL,
 
-  async signInWithGoogle(emailChoice?: string, mode: 'demo' | 'production' = 'production') {
-    const email = (emailChoice || (mode === 'demo' ? DEMO_USER_EMAIL : SUPER_USER_EMAIL)).toLowerCase();
-    
-    if (mode === 'demo' || email === DEMO_USER_EMAIL) {
-      const cloudMeta = getFakeCloudMetadata(email);
-      if (cloudMeta.disabled) throw new Error("Ce compte démo a été désactivé.");
+  async signInWithGoogle(emailChoice?: string) {
+    const email = (emailChoice || SUPER_USER_EMAIL).toLowerCase();
 
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      const user = {
-        id: "usr_demo_12345",
-        email: email,
-        name: "Utilisateur Démo",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=demo`,
-        user_metadata: { ...cloudMeta }
-      };
-
-      localStorage.setItem('newsletter_ai_user', JSON.stringify(user));
-      saveFakeCloudMetadata(email, { email, name: "Utilisateur Démo", last_login: new Date().toISOString() });
-      
-      return user;
-    }
-
+    // Cloud Auth Flow (Production)
     const supabase = getSupabaseClient();
     if (!supabase) throw new Error("Infrastructure Supabase injoignable.");
 
     const redirectTo = window.location.origin.split(/[?#]/)[0].replace(/\/$/, "");
-    
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { 
+      options: {
         redirectTo: redirectTo,
         queryParams: { prompt: 'select_account' }
       }
     });
-    
+
     if (error) throw error;
     return data;
   },
 
-  async signIn(email: string, password: string, mode: 'demo' | 'production' = 'production') {
+  async signIn(email: string, password: string) {
     const cleanEmail = email.toLowerCase();
-    if (mode === 'demo' || cleanEmail === DEMO_USER_EMAIL) {
-      return await this.signInWithGoogle(cleanEmail, 'demo');
+    if (cleanEmail === SUPER_USER_EMAIL) {
+      // Special admin handling if needed
     }
 
     const supabase = getSupabaseClient();
@@ -142,17 +108,16 @@ export const authService = {
     }
   },
 
-  async signUp(email: string, password: string, mode: 'demo' | 'production' = 'production') {
+  async signUp(email: string, password: string) {
     const cleanEmail = email.toLowerCase();
     const supabase = getSupabaseClient();
-    
-    if (mode === 'production' && supabase && cleanEmail !== DEMO_USER_EMAIL) {
+
+    if (supabase) {
       const { data, error } = await supabase.auth.signUp({ email: cleanEmail, password });
       if (error) throw error;
       return data;
     }
-    
-    saveFakeCloudMetadata(cleanEmail, { email: cleanEmail, name: cleanEmail.split('@')[0], created_at: new Date().toISOString() });
+
     return { email: cleanEmail };
   },
 
@@ -162,9 +127,9 @@ export const authService = {
     if (supabase) {
       try {
         await supabase.auth.signOut();
-      } catch (e) {}
+      } catch (e) { }
     }
-    
+
     if (user?.email?.toLowerCase() !== SUPER_USER_EMAIL) {
       localStorage.removeItem('SUPABASE_URL');
       localStorage.removeItem('SUPABASE_ANON_KEY');
@@ -212,7 +177,7 @@ export const authService = {
     if (supabase) {
       try {
         await supabase.auth.updateUser({ data: meta });
-      } catch (e) {}
+      } catch (e) { }
     }
     saveFakeCloudMetadata(user.email, meta);
     localStorage.setItem('newsletter_ai_user', JSON.stringify({ ...user, user_metadata: { ...user.user_metadata, ...meta } }));
