@@ -252,7 +252,8 @@ const BrandDetail: React.FC = () => {
         if (!listId) {
           try {
             const folderId = await mailService.createBrevoFolder("NewsletterAI");
-            listId = await mailService.createBrevoList(brand.brand_name, folderId);
+            const listName = userProfile?.name ? `${userProfile.name} - ${brand.brand_name}` : brand.brand_name;
+            listId = await mailService.createBrevoList(listName, folderId);
 
             // Mise à jour de la marque avec l'ID de liste
             await databaseService.updateBrand(brand.id, { brevo_list_id: listId });
