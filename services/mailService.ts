@@ -20,8 +20,8 @@ export const mailService = {
       if (params.brandId) {
         const brand = await databaseService.fetchBrandById(params.brandId);
         if (brand) {
-           if (brand.sender_email) senderEmail = brand.sender_email;
-           if (brand.sender_name) senderName = brand.sender_name;
+          if (brand.sender_email) senderEmail = brand.sender_email;
+          if (brand.sender_name) senderName = brand.sender_name;
         }
       }
 
@@ -34,8 +34,8 @@ export const mailService = {
         }
         // Si la marque n'a pas écrasé l'email/nom, on utilise celui du profil
         if (!params.brandId || (params.brandId && !senderEmail)) {
-           if (profile.sender_email) senderEmail = profile.sender_email;
-           if (profile.sender_name) senderName = profile.sender_name;
+          if (profile.sender_email) senderEmail = profile.sender_email;
+          if (profile.sender_name) senderName = profile.sender_name;
         }
       }
     } catch (e) {
@@ -46,7 +46,7 @@ export const mailService = {
     if (!brevoKey) {
       brevoKey = localStorage.getItem('MASTER_BREVO_KEY') || "";
     }
-    
+
     if (!brevoKey || brevoKey.trim() === "") {
       throw new Error("Clé API Brevo manquante. Veuillez la configurer dans vos paramètres.");
     }
@@ -60,9 +60,9 @@ export const mailService = {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          sender: { 
-            name: senderName, 
-            email: senderEmail 
+          sender: {
+            name: senderName,
+            email: senderEmail
           },
           to: [{ email: params.to }],
           subject: params.subject.startsWith('[TEST]') ? params.subject : params.subject,
@@ -72,11 +72,11 @@ export const mailService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `Erreur HTTP ${response.status}` }));
-        
+
         if (errorData.code === 'unauthorized' || response.status === 401) {
           throw new Error("Clé API Brevo invalide ou expirée.");
         }
-        
+
         if (errorData.message?.includes('sender') || errorData.code === 'invalid_parameter') {
           throw new Error(`L'expéditeur '${senderEmail}' n'est pas autorisé dans votre compte Brevo. Vérifiez vos 'Senders' sur Brevo.`);
         }
@@ -98,52 +98,110 @@ export const mailService = {
     subject: string,
     htmlContent: string,
     brandName: string,
-    brandId: string
+    brandId: string,
+    scheduledAt?: string
   }) {
-    const success: string[] = [];
-    const failed: string[] = [];
-    
-    // CONSTRUCTION ROBUSTE DE L'URL DE BASE
-    // On prend l'URL actuelle complète et on retire tout ce qui suit le '#' (hash)
-    // Cela permet de supporter les déploiements en sous-dossier (ex: domaine.com/app/)
-    // au lieu de juste domain.com (window.location.origin)
-    let baseUrl = window.location.href.split('#')[0];
-    if (!baseUrl.endsWith('/')) {
-      baseUrl += '/';
-    }
+    // 1. Resolve Sender Identity (reuse logic from sendTestEmail essentially)
+    let senderEmail = "noreply@newsletteria.online";
+    let senderName = params.brandName || "NewsletterAI";
+    let brevoListId = null;
 
-    // On envoie par lots de 5 pour ne pas saturer le navigateur/réseau
-    const batchSize = 5;
-    for (let i = 0; i < params.recipients.length; i += batchSize) {
-      const batch = params.recipients.slice(i, i + batchSize);
-      await Promise.all(batch.map(async (contact) => {
-        try {
-          // GENERATION DU LIEN DE DESABONNEMENT UNIQUE
-          // HashRouter nécessite le #/ avant la route
-          const unsubscribeUrl = `${baseUrl}#/unsubscribe?email=${encodeURIComponent(contact.email)}&brand_id=${params.brandId}`;
-          
-          // REMPLACEMENT DYNAMIQUE DANS LE HTML
-          // On remplace la variable {{unsubscribe_url}} si elle existe
-          // Sinon, par sécurité, on remplace aussi les href="#" génériques si le user n'a pas mis à jour son footer
-          let personalizedHtml = params.htmlContent
-             .replace(/{{unsubscribe_url}}/g, unsubscribeUrl)
-             .replace('href="#"', `href="${unsubscribeUrl}"`); // Fallback simple
-
-          await this.sendTestEmail({
-            to: contact.email,
-            subject: params.subject,
-            htmlContent: personalizedHtml,
-            brandName: params.brandName,
-            brandId: params.brandId
-          });
-          success.push(contact.email);
-        } catch (e) {
-          console.error(`Erreur envoi pour ${contact.email}`, e);
-          failed.push(contact.email);
+    try {
+      // Configuration de la Marque
+      if (params.brandId) {
+        const brand = await databaseService.fetchBrandById(params.brandId);
+        if (brand) {
+          if (brand.sender_email) senderEmail = brand.sender_email;
+          if (brand.sender_name) senderName = brand.sender_name;
+          if (brand.brevo_list_id) brevoListId = brand.brevo_list_id;
         }
-      }));
+      }
+
+      // Fallback Profile
+      if (!senderEmail || senderEmail.includes('noreply')) {
+        const profile = await databaseService.fetchMyProfile();
+        if (profile) {
+          if (profile.sender_email) senderEmail = profile.sender_email;
+          if (profile.sender_name) senderName = profile.sender_name;
+        }
+      }
+    } catch (e) {
+      console.warn("Sender resolution failed, using defaults");
     }
 
-    return { success, failed };
+    // 2. Call Edge Function
+    const { getSupabaseClient } = await import('./authService'); // Dynamic import to avoid circular dep
+    const supabase = getSupabaseClient();
+
+    // Resolve Brevo Key (Profile or LocalStorage fallback)
+    let fallbackKey = "";
+    try {
+      const profile = await databaseService.fetchMyProfile();
+      fallbackKey = profile?.brevo_api_key || localStorage.getItem('MASTER_BREVO_KEY') || "";
+    } catch (e) { }
+
+    // DEBUG AUTH
+    const debugSession = await supabase?.auth.getSession();
+    console.log("DEBUG SEND CAMPAIGN:", {
+      hasClient: !!supabase,
+      hasToken: !!debugSession?.data.session?.access_token,
+      tokenStart: debugSession?.data.session?.access_token?.substring(0, 10),
+      hasFallbackKey: !!fallbackKey
+    });
+
+    // Prepare recipients list (emails only or objects)
+    // Edge function expects array of strings or {email, name}
+    const recipientEmails = params.recipients.map(c => c.email);
+
+    // STRATEGY: White Label Sending
+    // We send from the specific sender configured for the brand/user.
+    // IMPORTANT: This email MUST be verified in the Brevo account associated with the API Key.
+    // If using a Master Key, this should be a generic verified address (e.g. contact@my-app.com).
+    const platformSenderEmail = "nwsletteria@gmail.com";
+
+    const userReplyToEmail = senderEmail; // Replies go to the same person
+
+    const { data, error } = await supabase.functions.invoke('send-campaign', {
+      body: {
+        subject: params.subject,
+        htmlContent: params.htmlContent,
+        brandId: params.brandId,
+        brandName: params.brandName,
+        sender: { name: senderName, email: platformSenderEmail },
+        replyTo: userReplyToEmail,
+        recipients: recipientEmails,
+        scheduledAt: params.scheduledAt,
+        apiKey: fallbackKey,
+        brevoListId: brevoListId
+      }
+    });
+
+    if (error) {
+      console.error('Edge Function Error:', error);
+      throw new Error(error.message || "Erreur lors de la création de la campagne Brevo");
+    }
+
+    // Handle application-level errors (returned as 200 OK)
+    if (data && (data.error || data.success === false)) {
+      console.error('Campaign Logic Error:', data.error);
+      throw new Error(data.error || "Erreur logique lors de l'envoi de la campagne via Brevo");
+    }
+
+    // Return fake result to match expected interface or updated one?
+    // NewsletterDetail expects { success: [], failed: [] } for reporting.
+    // Since it's a campaign, it's all or nothing usually securely.
+    // We'll return all as success if no error.
+    // Save the list ID if it was newly created
+    if (data.listId && params.brandId) {
+      // Ideally we check if it's different, but update is cheap
+      await supabase.from('brands').update({ brevo_list_id: data.listId }).eq('id', params.brandId);
+    }
+
+    return {
+      success: recipientEmails,
+      failed: [],
+      campaignId: data.campaignId,
+      status: data.status
+    };
   }
 };

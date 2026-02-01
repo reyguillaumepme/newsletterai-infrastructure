@@ -38,8 +38,9 @@ import {
   Copyright,
   RotateCcw,
   Users,
-  UserX,
-  Rocket
+  CalendarClock,
+  Rocket,
+  UserX
 } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 import { mailService } from '../services/mailService';
@@ -566,17 +567,23 @@ const NewsletterDetail: React.FC = () => {
     }
   };
 
-  const handlePublish = async () => {
-    if (!newsletter || selectedContacts.length === 0) return;
+
+  const handlePublish = async (forceImmediate: boolean = false) => {
+    if (!newsletter) return; // Removed selection check
+
+    // Auto-select all subscribed contacts for global send
+    const allSubscribed = contacts.filter(c => c.status === 'subscribed');
+    const recipientsToSend = allSubscribed;
 
     setIsPublishing(true);
     try {
       const result = await mailService.sendNewsletter({
-        recipients: selectedContacts,
+        recipients: recipientsToSend,
         subject: newsletter?.subject || '',
         htmlContent: renderNewsletterHtml(),
         brandName: brand?.brand_name || 'NewsletterAI',
-        brandId: newsletter.brand_id
+        brandId: newsletter.brand_id,
+        scheduledAt: (newsletter.status === 'scheduled' && !forceImmediate) ? newsletter.scheduled_at : undefined
       });
 
       // Update newsletter status
@@ -699,6 +706,7 @@ const NewsletterDetail: React.FC = () => {
 
   return (
     <>
+
       {!isNew && (
         <div className="max-w-6xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
           <div className="flex items-center justify-between">
@@ -945,227 +953,173 @@ const NewsletterDetail: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {showPreviewModal && (
-            <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-2xl z-[500] flex items-center justify-center p-4 overflow-hidden">
-              <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
-                <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
-                  <div className="flex items-center gap-8">
-                    <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
-                    <div className="flex bg-gray-100 p-1 rounded-xl">
-                      <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Monitor size={14} /> Desktop</button>
-                      <button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Smartphone size={14} /> Mobile</button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setShowPreviewModal(false);
-                        setShowSendTestModal(true);
-                      }}
-                      className="px-6 py-3 bg-primary text-gray-950 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                    >
-                      <SendHorizontal size={16} /> Envoyer un test
-                    </button>
-                    <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200 transition-all"><X size={24} /></button>
-                  </div>
-                </div>
-                <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
-                  <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
-                    <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
-                  </div>
+
+      {showPreviewModal && (
+        <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-2xl z-[500] flex items-center justify-center p-4 overflow-hidden">
+          <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
+            <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
+              <div className="flex items-center gap-8">
+                <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Monitor size={14} /> Desktop</button>
+                  <button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Smartphone size={14} /> Mobile</button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {showIdeaPicker && (
-            <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
-                <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
-                  <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
-                </div>
-                <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-3">
-                  {isLoadingPicker ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-primary" size={48} /></div> : availableIdeas.length > 0 ? availableIdeas.map(idea => (
-                    <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
-                      <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
-                        {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
-                      </div>
-                      <Plus size={20} className="text-gray-200" />
-                    </div>
-                  )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
-                </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setShowPreviewModal(false);
+                    setShowSendTestModal(true);
+                  }}
+                  className="px-6 py-3 bg-primary text-gray-950 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                >
+                  <SendHorizontal size={16} /> Envoyer un test
+                </button>
+                <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200 transition-all"><X size={24} /></button>
               </div>
             </div>
-          )}
-
-          {selectedIdea && (
-            <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
-                <div className="relative h-64 shrink-0">
-                  {selectedIdea.image_url ? <img src={selectedIdea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><ImageIcon size={64} /></div>}
-                  <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
+            <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
+              <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
+                <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {showPublishModal && (
-            <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
-                {/* Header */}
-                <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-primary/5 to-transparent">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                      <Rocket size={28} className="text-primary" />
-                      Publier la Newsletter
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setShowPublishModal(false);
-                        setSearchQuery('');
-                        setDisplayedContactsCount(10);
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
-                    >
-                      <X size={24} />
-                    </button>
+      {showIdeaPicker && (
+        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+            <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
+              <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
+            </div>
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-3">
+              {isLoadingPicker ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-primary" size={48} /></div> : availableIdeas.length > 0 ? availableIdeas.map(idea => (
+                <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
+                  <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
+                    {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
                   </div>
-                  <p className="text-sm text-gray-500">
-                    {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} sélectionné{selectedContacts.length > 1 ? 's' : ''} / {contacts.filter(c => c.status === 'subscribed').length} abonné{contacts.filter(c => c.status === 'subscribed').length > 1 ? 's' : ''}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
+                  </div>
+                  <Plus size={20} className="text-gray-200" />
+                </div>
+              )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedIdea && (
+        <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
+            <div className="relative h-64 shrink-0">
+              {selectedIdea.image_url ? <img src={selectedIdea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><ImageIcon size={64} /></div>}
+              <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
+          </div>
+        </div>
+      )}
+
+      {showPublishModal && (
+        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+            {/* Header */}
+            <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-primary/5 to-transparent">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+                  <Rocket size={28} className="text-primary" />
+                  Publier la Newsletter
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowPublishModal(false);
+                    setSearchQuery('');
+                    setDisplayedContactsCount(10);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              {/* Audience Summary (No Selection needed) */}
+              <div className="flex-1 p-8 flex flex-col items-center justify-center space-y-6">
+                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+                  <Users size={48} className="text-primary" />
+                </div>
+
+                <div className="text-center space-y-2">
+                  <h4 className="text-xl font-bold text-gray-900">
+                    Diffusion à l'audience de la marque
+                  </h4>
+                  <p className="text-gray-500 max-w-sm mx-auto">
+                    Cette newsletter sera envoyée à l'ensemble des abonnés de la liste <span className="font-bold text-gray-700">{brand?.brand_name}</span>.
                   </p>
                 </div>
 
-                {/* Search Bar */}
-                <div className="p-6 border-b border-gray-50">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Rechercher par email, prénom, nom..."
-                      className="w-full px-4 py-3 pl-10 border-2 border-gray-100 rounded-2xl focus:border-primary focus:outline-none transition-all"
-                    />
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                      <Users size={18} />
-                    </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex items-center gap-4 min-w-[300px]">
+                  <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                    <Users size={24} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Abonnés Actifs</p>
+                    <p className="text-2xl font-black text-gray-900">
+                      {contacts.filter(c => c.status === 'subscribed').length} contact{contacts.filter(c => c.status === 'subscribed').length > 1 ? 's' : ''}
+                    </p>
                   </div>
                 </div>
 
-                {/* Contact List */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-2">
-                  {isLoadingContacts ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                      <Loader2 className="animate-spin text-primary" size={48} />
-                      <p className="text-sm text-gray-500">Chargement des contacts...</p>
+                <p className="text-xs text-center text-gray-400 max-w-xs">
+                  La liste des contacts est gérée automatiquement via l'espace "Audience" de la marque.
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-50 bg-gray-50/50">
+                {publishSuccess ? (
+                  <div className="p-4 bg-green-50 border-2 border-green-100 rounded-2xl flex items-center gap-3 mb-4">
+                    <CheckCircle2 className="text-green-500" size={24} />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-green-900">Newsletter publiée avec succès !</p>
+                      <p className="text-xs text-green-700">
+                        {publishReport?.success || 0} envoyé{(publishReport?.success || 0) > 1 ? 's' : ''}, {publishReport?.failed || 0} échec{(publishReport?.failed || 0) > 1 ? 's' : ''}
+                      </p>
                     </div>
-                  ) : (() => {
-                    const filteredContacts = contacts.filter(contact => {
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        contact.email.toLowerCase().includes(query) ||
-                        contact.first_name?.toLowerCase().includes(query) ||
-                        contact.last_name?.toLowerCase().includes(query)
-                      );
-                    });
-                    const displayedContacts = filteredContacts.slice(0, displayedContactsCount);
+                  </div>
+                ) : null}
 
-                    return displayedContacts.length > 0 ? (
-                      <>
-                        {displayedContacts.map(contact => {
-                          const isSelected = selectedContacts.some(c => c.id === contact.id);
-                          return (
-                            <div
-                              key={contact.id}
-                              className="p-4 border border-gray-100 rounded-2xl hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center gap-4"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleContactSelection(contact)}
-                                disabled={contact.status !== 'subscribed'}
-                                className="w-5 h-5 rounded border-2 border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-bold text-sm truncate">{contact.email}</p>
-                                {(contact.first_name || contact.last_name) && (
-                                  <p className="text-xs text-gray-500 truncate">
-                                    {contact.first_name} {contact.last_name}
-                                  </p>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => handleToggleContactStatus(contact.id, contact.status)}
-                                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all ${contact.status === 'subscribed'
-                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                  }`}
-                              >
-                                {contact.status === 'subscribed' ? 'Abonné' : 'Désabonné'}
-                              </button>
-                            </div>
-                          );
-                        })}
-                        {filteredContacts.length > displayedContactsCount && (
-                          <button
-                            onClick={() => setDisplayedContactsCount(prev => prev + 10)}
-                            className="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:border-primary hover:text-primary transition-all text-sm font-bold"
-                          >
-                            Charger plus de contacts ({filteredContacts.length - displayedContactsCount} restants)
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-center py-20">
-                        <UserX size={48} className="mx-auto text-gray-300 mb-4" />
-                        <p className="text-gray-400 font-bold">
-                          {searchQuery ? 'Aucun contact trouvé pour cette recherche' : 'Aucun contact disponible'}
-                        </p>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Footer */}
-                <div className="p-6 border-t border-gray-50 bg-gray-50/50">
-                  {publishSuccess ? (
-                    <div className="p-4 bg-green-50 border-2 border-green-100 rounded-2xl flex items-center gap-3 mb-4">
-                      <CheckCircle2 className="text-green-500" size={24} />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-green-900">Newsletter publiée avec succès !</p>
-                        <p className="text-xs text-green-700">
-                          {publishReport?.success || 0} envoyé{(publishReport?.success || 0) > 1 ? 's' : ''}, {publishReport?.failed || 0} échec{(publishReport?.failed || 0) > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="flex gap-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowPublishModal(false);
+                      setSearchQuery('');
+                      setDisplayedContactsCount(10);
+                    }}
+                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                    disabled={isPublishing}
+                  >
+                    Annuler
+                  </button>
+                  <div className="flex-1 group relative">
                     <button
-                      onClick={() => {
-                        setShowPublishModal(false);
-                        setSearchQuery('');
-                        setDisplayedContactsCount(10);
-                      }}
-                      className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
-                      disabled={isPublishing}
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handlePublish}
-                      disabled={isPublishing || selectedContacts.length === 0 || publishSuccess}
-                      className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      onClick={() => handlePublish(true)}
+                      disabled={isPublishing || publishSuccess || newsletter?.status === 'scheduled'}
+                      className="w-full px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       {isPublishing ? (
                         <>
                           <Loader2 className="animate-spin" size={18} />
                           Envoi en cours...
+                        </>
+                      ) : newsletter?.status === 'scheduled' ? (
+                        <>
+                          <CalendarClock size={18} />
+                          Déjà Planifiée
                         </>
                       ) : (
                         <>
@@ -1174,13 +1128,19 @@ const NewsletterDetail: React.FC = () => {
                         </>
                       )}
                     </button>
+                    {newsletter?.status === 'scheduled' && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-black/80 text-white text-xs rounded-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-center pointer-events-none">
+                        Cette newsletter est programmée. Annulez la planification pour l'envoyer maintenant.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
+
 
       {/* Brand Selection Modal for New Newsletter */}
       {showCreationModal && (
@@ -1394,6 +1354,7 @@ const NewsletterDetail: React.FC = () => {
           </div>
         </div>
       )}
+
       {showUpgradeModal && (
         <UpgradeModal
           isOpen={showUpgradeModal}
