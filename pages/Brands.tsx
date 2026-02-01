@@ -5,12 +5,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { databaseService } from '../services/databaseService';
 import { Brand } from '../types';
 
+import DeleteBrandModal from '../components/DeleteBrandModal';
+
 const Brands: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; brandId: string | null; brandName: string }>({ isOpen: false, brandId: null, brandName: '' });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +46,7 @@ const Brands: React.FC = () => {
     e.preventDefault();
     setIsCreating(true);
     setError(null);
-    
+
     try {
       await databaseService.createBrand(newBrand);
       setIsModalOpen(false);
@@ -66,7 +69,7 @@ const Brands: React.FC = () => {
           <h2 className="text-3xl font-bold">Vos Marques</h2>
           <p className="text-gray-500">Gérez les identités et stratégies de vos newsletters.</p>
         </div>
-        <button 
+        <button
           onClick={() => { setError(null); setIsModalOpen(true); }}
           className="bg-primary hover:bg-[#ffca28] text-gray-900 px-6 py-3 rounded-2xl font-bold flex items-center shadow-lg transition-all hover:-translate-y-1"
         >
@@ -76,8 +79,8 @@ const Brands: React.FC = () => {
 
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder="Rechercher une marque..."
           className="w-full bg-white border border-gray-100 rounded-2xl pl-12 pr-4 py-4 focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all text-lg shadow-sm"
           value={search}
@@ -97,7 +100,7 @@ const Brands: React.FC = () => {
                 {error}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/admin')}
               className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2"
             >
@@ -127,7 +130,15 @@ const Brands: React.FC = () => {
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-lg">{brand.target_audience}</span>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Edit3 size={18} className="text-gray-400" />
-                  <Trash2 size={18} className="text-red-400" />
+                  <Trash2
+                    size={18}
+                    className="text-red-400 hover:text-red-600 transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDeleteModalState({ isOpen: true, brandId: brand.id, brandName: brand.brand_name });
+                    }}
+                  />
                 </div>
               </div>
             </Link>
@@ -153,27 +164,27 @@ const Brands: React.FC = () => {
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><X size={20} /></button>
               </div>
-              
+
               <form onSubmit={handleCreateBrand} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom de la marque</label>
-                    <input required value={newBrand.brand_name} onChange={e => setNewBrand({...newBrand, brand_name: e.target.value})} type="text" placeholder="Ex: AI Trends Weekly" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium"/>
+                    <input required value={newBrand.brand_name} onChange={e => setNewBrand({ ...newBrand, brand_name: e.target.value })} type="text" placeholder="Ex: AI Trends Weekly" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Audience cible</label>
-                    <input required value={newBrand.target_audience} onChange={e => setNewBrand({...newBrand, target_audience: e.target.value})} type="text" placeholder="Ex: Entrepreneurs, CTOs" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium"/>
+                    <input required value={newBrand.target_audience} onChange={e => setNewBrand({ ...newBrand, target_audience: e.target.value })} type="text" placeholder="Ex: Entrepreneurs, CTOs" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Ton éditorial</label>
-                  <input required value={newBrand.editorial_tone} onChange={e => setNewBrand({...newBrand, editorial_tone: e.target.value})} type="text" placeholder="Ex: Expert, minimaliste et visionnaire" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium"/>
+                  <input required value={newBrand.editorial_tone} onChange={e => setNewBrand({ ...newBrand, editorial_tone: e.target.value })} type="text" placeholder="Ex: Expert, minimaliste et visionnaire" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all text-sm font-medium" />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description courte</label>
-                  <textarea required value={newBrand.description} onChange={e => setNewBrand({...newBrand, description: e.target.value})} rows={3} placeholder="De quoi parle votre marque ?" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all resize-none text-sm font-medium"/>
+                  <textarea required value={newBrand.description} onChange={e => setNewBrand({ ...newBrand, description: e.target.value })} rows={3} placeholder="De quoi parle votre marque ?" className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 outline-none focus:ring-4 focus:ring-primary/20 transition-all resize-none text-sm font-medium" />
                 </div>
 
                 <button type="submit" disabled={isCreating} className="w-full py-4 bg-primary text-gray-900 rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
@@ -185,6 +196,23 @@ const Brands: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* DELETE BRAND MODAL */}
+      <DeleteBrandModal
+        isOpen={deleteModalState.isOpen}
+        brandName={deleteModalState.brandName}
+        onClose={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={async () => {
+          if (deleteModalState.brandId) {
+            const success = await databaseService.deleteBrand(deleteModalState.brandId);
+            if (success) {
+              setBrands(prev => prev.filter(b => b.id !== deleteModalState.brandId));
+            } else {
+              setError("Impossible de supprimer la marque. Réessayez.");
+            }
+          }
+        }}
+      />
     </div>
   );
 };

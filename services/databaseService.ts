@@ -271,6 +271,43 @@ export const databaseService = {
     return Array.isArray(data) ? data[0] : data;
   },
 
+  async deleteBrand(id: string): Promise<boolean> {
+    if (!isUsingCloud()) {
+      storage.set('brands', storage.get('brands').filter((b: any) => b.id !== id));
+      // Local cascade
+      storage.set('contacts', storage.get('contacts').filter((c: any) => c.brand_id !== id));
+      storage.set('ideas', storage.get('ideas').filter((i: any) => i.brand_id !== id));
+      storage.set('newsletters', storage.get('newsletters').filter((n: any) => n.brand_id !== id));
+      return true;
+    }
+
+    try {
+      const { url, key } = getSupabaseConfig();
+      const user = authService.getCurrentUser();
+      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      const headers = await getHeaders(key);
+
+      // Manual Cascade (safest)
+      // 1. Delete Contacts
+      await fetch(`${baseUrl}/rest/v1/contacts?brand_id=eq.${id}`, { method: 'DELETE', headers });
+      // 2. Delete Ideas
+      await fetch(`${baseUrl}/rest/v1/ideas?brand_id=eq.${id}`, { method: 'DELETE', headers });
+      // 3. Delete Newsletters
+      await fetch(`${baseUrl}/rest/v1/newsletters?brand_id=eq.${id}`, { method: 'DELETE', headers });
+
+      // 4. Delete Brand
+      const res = await fetch(`${baseUrl}/rest/v1/brands?id=eq.${id}`, {
+        method: 'DELETE',
+        headers
+      });
+
+      return res.ok;
+    } catch (e) {
+      console.error("Delete Brand Error:", e);
+      return false;
+    }
+  },
+
   async updateBrand(id: string, fields: Partial<Brand>): Promise<Brand | null> {
     if (fields.logo_url?.startsWith('data:')) fields.logo_url = await this.uploadImage(fields.logo_url);
     if (!isUsingCloud()) {
