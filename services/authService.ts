@@ -21,17 +21,34 @@ export const getSupabaseConfig = () => {
   };
 };
 
+// Singleton Storage
+let supabaseInstance: any = null;
+let currentConfig = { url: '', key: '' };
+
 export const getSupabaseClient = () => {
   const { url, key } = getSupabaseConfig();
-  if (url && key) {
-    try {
-      return createClient(url, key);
-    } catch (e) {
-      console.error("Erreur instanciation Supabase:", e);
-      return null;
-    }
+
+  // If config is missing, reset instance
+  if (!url || !key) {
+    supabaseInstance = null;
+    currentConfig = { url: '', key: '' };
+    return null;
   }
-  return null;
+
+  // Reuse instance if config hasn't changed
+  if (supabaseInstance && url === currentConfig.url && key === currentConfig.key) {
+    return supabaseInstance;
+  }
+
+  // Create new instance
+  try {
+    supabaseInstance = createClient(url, key);
+    currentConfig = { url, key };
+    return supabaseInstance;
+  } catch (e) {
+    console.error("Erreur instanciation Supabase:", e);
+    return null;
+  }
 };
 
 const getFakeCloudMetadata = (email: string) => {
@@ -135,6 +152,12 @@ export const authService = {
       localStorage.removeItem('SUPABASE_ANON_KEY');
     }
     localStorage.removeItem('newsletter_ai_user');
+
+    // Force reset of singleton
+    // @ts-ignore
+    supabaseInstance = null;
+    // @ts-ignore
+    currentConfig = { url: '', key: '' };
   },
 
   async syncSupabaseUser(supabaseUser: any) {

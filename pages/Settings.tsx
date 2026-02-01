@@ -18,6 +18,7 @@ import {
   MousePointer2,
   Terminal
 } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
 import { authService } from '../services/authService';
 import { databaseService } from '../services/databaseService';
 import { Profile } from '../types';
@@ -37,6 +38,11 @@ const Settings: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(!isDemo);
   const [error, setError] = useState<string | null>(null);
+
+  // Alert Modal State
+  const [alertState, setAlertState] = useState<{ isOpen: boolean, message: string, type: 'info' | 'error' | 'success' }>({
+    isOpen: false, message: '', type: 'info'
+  });
 
   useEffect(() => {
     if (!isDemo) {
@@ -248,7 +254,11 @@ const Settings: React.FC = () => {
                   <button
                     onClick={async () => {
                       const success = await databaseService.deductUserCredit(user?.id || '');
-                      alert(success ? "Succès ! 1 crédit déduit." : "Échec de la déduction. Vérifiez la console.");
+                      setAlertState({
+                        isOpen: true,
+                        message: success ? "Succès ! 1 crédit déduit." : "Échec de la déduction. Vérifiez la console.",
+                        type: success ? 'success' : 'error'
+                      });
                     }}
                     className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold"
                   >
@@ -268,6 +278,12 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 };

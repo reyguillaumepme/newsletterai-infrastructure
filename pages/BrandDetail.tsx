@@ -36,6 +36,8 @@ import { generateNewsletterStrategy, generateWritingFramework } from '../service
 import { databaseService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
+import UpgradeModal from '../components/UpgradeModal';
+import AlertModal from '../components/AlertModal';
 
 const BrandDetail: React.FC = () => {
   const { id } = useParams();
@@ -62,6 +64,12 @@ const BrandDetail: React.FC = () => {
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
   const [isSavingContact, setIsSavingContact] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null); // New Profile State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false); // Upgrade Modal State
+
+  // Alert Modal State
+  const [alertState, setAlertState] = useState<{ isOpen: boolean, message: string, type: 'info' | 'error' | 'success' }>({
+    isOpen: false, message: '', type: 'info'
+  });
 
   const currentUser = authService.getCurrentUser();
   const isDemo = false;
@@ -150,7 +158,7 @@ const BrandDetail: React.FC = () => {
       }
     } catch (e) {
       console.error("Save failure:", e);
-      alert("Erreur de sauvegarde. Vérifiez votre infrastructure Supabase.");
+      setAlertState({ isOpen: true, message: "Erreur de sauvegarde. Vérifiez votre infrastructure Supabase.", type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -170,14 +178,14 @@ const BrandDetail: React.FC = () => {
   const handleGenerateStrategy = async () => {
     if (!brand) return;
     if (isDemo) {
-      alert("⚠️ Mode Démo : IA inactive.");
+      setAlertState({ isOpen: true, message: "⚠️ Mode Démo : IA inactive.", type: 'info' });
       return;
     }
 
     // CREDIT CHECK
     const currentCredits = userProfile?.credits ?? 0;
     if (currentCredits <= 0) {
-      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour générer une stratégie.");
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -694,6 +702,20 @@ const BrandDetail: React.FC = () => {
           </div>
         </div>
       )}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          type="credits"
+          currentPlan={userProfile?.subscription_plan || 'free'}
+        />
+      )}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 };

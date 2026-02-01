@@ -38,6 +38,7 @@ import { databaseService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { enhanceIdeaWithAI, generateImageFromPrompt } from '../services/geminiService';
 import { Idea, Brand } from '../types';
+import UpgradeModal from '../components/UpgradeModal';
 
 const QUILL_MODULES = {
   toolbar: [
@@ -90,6 +91,9 @@ const Ideas: React.FC = () => {
     contrast: 100,
     saturation: 100
   });
+
+  // Upgrade Modal State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [newIdea, setNewIdea] = useState({ title: '', brand_id: '', content: '' });
 
@@ -298,7 +302,7 @@ const Ideas: React.FC = () => {
     // CREDIT CHECK
     const currentCredits = userProfile?.credits ?? 0;
     if (currentCredits <= 0) {
-      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour utiliser l'IA.");
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -327,7 +331,7 @@ const Ideas: React.FC = () => {
     // CREDIT CHECK
     const currentCredits = userProfile?.credits ?? 0;
     if (currentCredits <= 0) {
-      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour générer des images.");
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -1007,6 +1011,14 @@ const Ideas: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          type="credits"
+          currentPlan={userProfile?.subscription_plan || 'free'}
+        />
       )}
     </div>
   );

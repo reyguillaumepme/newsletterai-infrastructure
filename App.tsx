@@ -27,7 +27,7 @@ const App: React.FC = () => {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabase.auth.onAuthStateChange((event: string, session: any) => {
           if (session?.user) {
             authService.syncSupabaseUser(session.user).then(syncedUser => {
               if (syncedUser) {

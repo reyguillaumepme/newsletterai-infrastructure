@@ -46,6 +46,8 @@ import { mailService } from '../services/mailService';
 import { authService } from '../services/authService';
 import { generateNewsletterHook } from '../services/geminiService';
 import { Newsletter, Idea, Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
+import UpgradeModal from '../components/UpgradeModal';
+import AlertModal from '../components/AlertModal';
 
 const QUILL_MODULES = {
   toolbar: [
@@ -79,6 +81,17 @@ const NewsletterDetail: React.FC = () => {
   const [showIdeaPicker, setShowIdeaPicker] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Upgrade Modal State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalType, setUpgradeModalType] = useState<'credits' | 'feature'>('feature');
+  const [upgradeModalFeature, setUpgradeModalFeature] = useState<string>('');
+
+  // Alert Modal State
+  const [alertState, setAlertState] = useState<{ isOpen: boolean, message: string, type: 'info' | 'error' | 'success' }>({
+    isOpen: false, message: '', type: 'info'
+  });
+
   const [showSendTestModal, setShowSendTestModal] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('desktop');
 
@@ -239,7 +252,7 @@ const NewsletterDetail: React.FC = () => {
       }, 2000);
     } catch (error) {
       console.error('Erreur lors de l\'envoi du test:', error);
-      alert('Erreur lors de l\'envoi du test. Veuillez réessayer.');
+      setAlertState({ isOpen: true, message: 'Erreur lors de l\'envoi du test. Veuillez réessayer.', type: 'error' });
     } finally {
       setIsSendingTest(false);
     }
@@ -282,7 +295,7 @@ const NewsletterDetail: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur lors du changement de marque:', error);
-      alert('Erreur lors du changement de marque. Veuillez réessayer.');
+      setAlertState({ isOpen: true, message: 'Erreur lors du changement de marque. Veuillez réessayer.', type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -324,21 +337,33 @@ const NewsletterDetail: React.FC = () => {
   };
 
   const handleGenerateHook = async () => {
-    if (!newsletter || ideas.length === 0) return;
-    if (isDemo) { alert("IA inactive en démo."); return; }
-
-    // CREDIT CHECK
-    const currentCredits = userProfile?.credits ?? 0;
-    if (currentCredits <= 0) {
-      alert("⚠️ Crédits insuffisants !\n\nVous avez utilisé tous vos crédits IA. Passez à la version Pro pour recharger.");
+    if (!newsletter || ideas.length === 0) {
+      if (ideas.length === 0) setAlertState({ isOpen: true, message: "Ajoutez au moins une idée pour générer une accroche.", type: 'info' });
+      return;
+    }
+    if (isDemo) {
+      setAlertState({ isOpen: true, message: "IA inactive en démo.", type: 'info' });
       return;
     }
 
     setIsGeneratingHook(true);
+
     try {
+      // 1. FRESH CREDIT CHECK
+      const freshProfile = await databaseService.fetchMyProfile();
+      setUserProfile(freshProfile); // Sync UI
+
+      if ((freshProfile?.credits ?? 0) <= 0) {
+        setUpgradeModalType('credits');
+        setShowUpgradeModal(true);
+        setIsGeneratingHook(false);
+        return;
+      }
+
+      // 2. GENERATE CONTENT
       const hook = await generateNewsletterHook(newsletter?.subject || '', ideas, brand || undefined);
 
-      // DEDUCT CREDIT
+      // 3. DEDUCT CREDIT
       const success = await databaseService.deductUserCredit(currentUser?.id || '');
       if (success) {
         setUserProfile((prev: any) => ({ ...prev, credits: Math.max(0, (prev?.credits || 0) - 1) }));
@@ -349,6 +374,14 @@ const NewsletterDetail: React.FC = () => {
         setHookValue(hookHtml);
       });
       handleSaveNewsletter({ generated_content: hookHtml });
+
+    } catch (error: any) {
+      console.error(error);
+      setAlertState({
+        isOpen: true,
+        message: error.message || "Erreur lors de la génération de l'accroche.",
+        type: 'error'
+      });
     } finally {
       setIsGeneratingHook(false);
     }
@@ -485,7 +518,9 @@ const NewsletterDetail: React.FC = () => {
   const handleOpenPublishModal = () => {
     // PLAN CHECK
     if (userProfile?.subscription_plan === 'free') {
-      alert("🔒 Fonctionnalité Premium\n\nL'envoi réel de newsletters est réservé aux membres Pro et Elite.\n\nEn version gratuite, vous pouvez uniquement envoyer des emails de test.");
+      setUpgradeModalType('feature');
+      setUpgradeModalFeature("L'envoi et la planification");
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -560,7 +595,8 @@ const NewsletterDetail: React.FC = () => {
       }, 3000);
     } catch (error: any) {
       console.error('Error publishing newsletter:', error);
-      alert('Erreur lors de l\'envoi: ' + (error.message || 'Erreur inconnue'));
+      setAlertState({ isOpen: true, message: 'Erreur lors de l\'envoi: ' + (error.message || 'Erreur inconnue'), type: 'error' });
+      setPublishReport(null);
     } finally {
       setIsPublishing(false);
     }
@@ -643,6 +679,21 @@ const NewsletterDetail: React.FC = () => {
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
       <Loader2 className="animate-spin text-primary" size={64} />
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          type={upgradeModalType}
+          currentPlan={userProfile?.subscription_plan || 'free'}
+          requiredFeature={upgradeModalFeature}
+        />
+      )}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 
@@ -669,7 +720,13 @@ const NewsletterDetail: React.FC = () => {
                   <button
                     onClick={() => {
                       if (userProfile?.subscription_plan === 'free') {
-                        alert("🔒 Fonctionnalité Premium\n\nLa planification est réservée aux membres Pro et Elite.");
+                        if (userProfile?.subscription_plan === 'free') {
+                          setUpgradeModalType('feature');
+                          setUpgradeModalFeature("La planification");
+                          setShowUpgradeModal(true);
+                        } else {
+                          setShowScheduleModal(true);
+                        }
                         return;
                       }
                       startTransition(() => setShowScheduleModal(true))
@@ -1337,6 +1394,21 @@ const NewsletterDetail: React.FC = () => {
           </div>
         </div>
       )}
+      {showUpgradeModal && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          type={upgradeModalType}
+          currentPlan={userProfile?.subscription_plan || 'free'}
+          requiredFeature={upgradeModalFeature}
+        />
+      )}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </>
   );
 };
