@@ -35,6 +35,7 @@ import {
 import { generateNewsletterStrategy, generateWritingFramework } from '../services/geminiService';
 import { databaseService } from '../services/databaseService';
 import { authService } from '../services/authService';
+import { mailService } from '../services/mailService';
 import { Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
 import UpgradeModal from '../components/UpgradeModal';
 import AlertModal from '../components/AlertModal';
@@ -236,16 +237,50 @@ const BrandDetail: React.FC = () => {
     if (!brand?.id) return;
     setIsSavingContact(true);
     try {
+      // 1. Sauvegarde locale Supabase
       if (editingContact.id) {
         await databaseService.updateContact(editingContact.id, editingContact);
       } else {
         await databaseService.createContact({ ...editingContact, brand_id: brand.id, status: 'subscribed' });
       }
+
+      // 2. Synchronisation Brevo
+      try {
+        let listId = brand.brevo_list_id;
+
+        // Si la marque n'a pas encore de liste Brevo, on la crée
+        if (!listId) {
+          try {
+            const folderId = await mailService.createBrevoFolder("NewsletterAI");
+            listId = await mailService.createBrevoList(brand.brand_name, folderId);
+
+            // Mise à jour de la marque avec l'ID de liste
+            await databaseService.updateBrand(brand.id, { brevo_list_id: listId });
+
+            // Mise à jour locale du state brand
+            setBrand(prev => prev ? { ...prev, brevo_list_id: listId } : null);
+          } catch (e) {
+            console.error("Erreur création liste Brevo", e);
+          }
+        }
+
+        // Ajout du contact à la liste Brevo
+        if (listId && editingContact.email) {
+          await mailService.addContactToBrevoList(listId, editingContact.email, {
+            PRENOM: editingContact.first_name || '',
+            NOM: editingContact.last_name || ''
+          });
+        }
+      } catch (brevoError) {
+        console.error("Erreur Sync Brevo general:", brevoError);
+      }
+
       await loadContacts();
       setIsContactModalOpen(false);
       setEditingContact({});
     } catch (error) {
       console.error("Erreur sauvegarde contact", error);
+      setAlertState({ isOpen: true, message: "Erreur lors de la sauvegarde.", type: 'error' });
     } finally {
       setIsSavingContact(false);
     }

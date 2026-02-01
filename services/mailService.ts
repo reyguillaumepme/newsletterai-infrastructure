@@ -2,6 +2,27 @@
 import { databaseService } from './databaseService';
 import { Contact } from '../types';
 
+const BREVO_API_URL = 'https://api.brevo.com/v3';
+
+// Helper interne pour récupérer les headers
+const getBrevoHeaders = async () => {
+  let brevoKey = "";
+  try {
+    const profile = await databaseService.fetchMyProfile();
+    brevoKey = profile?.brevo_api_key || localStorage.getItem('MASTER_BREVO_KEY') || "";
+  } catch (e) {
+    brevoKey = localStorage.getItem('MASTER_BREVO_KEY') || "";
+  }
+
+  if (!brevoKey) throw new Error("Clé API Brevo manquante");
+
+  return {
+    'api-key': brevoKey,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+};
+
 export const mailService = {
   async sendTestEmail(params: {
     to: string,
@@ -203,5 +224,77 @@ export const mailService = {
       campaignId: data.campaignId,
       status: data.status
     };
+  },
+
+  // --- NOUVELLES MÉTHODES DE GESTION DE LISTES ---
+
+  async createBrevoFolder(name: string): Promise<number> {
+    const headers = await getBrevoHeaders();
+
+    // 1. Chercher si le dossier existe déjà
+    try {
+      const res = await fetch(`${BREVO_API_URL}/contacts/folders?limit=50&offset=0`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const existing = data.folders?.find((f: any) => f.name === name);
+        if (existing) return existing.id;
+      }
+    } catch (e) {
+      console.warn("Erreur lecture dossiers Brevo", e);
+    }
+
+    // 2. Créer le dossier
+    const res = await fetch(`${BREVO_API_URL}/contacts/folders`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name })
+    });
+
+    if (!res.ok) throw new Error(`Erreur création dossier Brevo: ${res.status}`);
+    const data = await res.json();
+    return data.id;
+  },
+
+  async createBrevoList(name: string, folderId: number): Promise<number> {
+    const headers = await getBrevoHeaders();
+
+    const res = await fetch(`${BREVO_API_URL}/contacts/lists`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name, folderId })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || `Erreur création liste Brevo: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.id;
+  },
+
+  async addContactToBrevoList(listId: number, email: string, attributes: any = {}) {
+    const headers = await getBrevoHeaders();
+
+    // On utilise l'endpoint de création/update (DOI = false par défaut)
+    const res = await fetch(`${BREVO_API_URL}/contacts`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email,
+        listIds: [listId],
+        updateEnabled: true, // Mettre à jour si existe
+        attributes
+      })
+    });
+
+    if (!res.ok) {
+      // Ignorer si le contact existe déjà (cas updateEnabled=false, mais ici true donc devrait passer)
+      // Parfois Brevo renvoie une erreur si le contact est blacklisté, etc.
+      const errorData = await res.json();
+      console.warn("Brevo Add Contact Warning:", errorData);
+      // On ne throw pas forcément pour ne pas bloquer l'UI, sauf erreur critique
+    }
+    return true;
   }
 };
