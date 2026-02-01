@@ -580,6 +580,60 @@ export const databaseService = {
 
   async syncStats(): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); },
 
+  async fetchTotalContactCount(): Promise<number> {
+    if (!isUsingCloud()) return storage.get('contacts').length;
+    const { url, key } = getSupabaseConfig();
+    const user = authService.getCurrentUser();
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const headers = await getHeaders(key);
+    // Use HEAD request with count=exact to avoid fetching all data
+    const res = await fetch(`${baseUrl}/rest/v1/contacts?brand_id=not.is.null&select=id`, {
+      method: 'GET', // changed to GET with limit=1 because HEAD might be blocked by some CORS configs if not set up
+      headers: { ...headers, 'Range': '0-0', 'Prefer': 'count=exact' }
+    });
+    const contentRange = res.headers.get('content-range');
+    if (contentRange) {
+      const parts = contentRange.split('/');
+      return parts.length > 1 ? parseInt(parts[1], 10) : 0;
+    }
+    return 0;
+  },
+
+  async fetchGlobalStatistics(): Promise<{ avgOpenRate: number; avgClickRate: number; totalSent: number }> {
+    if (!isUsingCloud()) {
+      const stats = storage.get('stats');
+      if (!stats.length) return { avgOpenRate: 0, avgClickRate: 0, totalSent: 0 };
+      const opens = stats.reduce((acc: number, s: any) => acc + (s.opens || 0), 0);
+      const sent = stats.reduce((acc: number, s: any) => acc + (s.sent_count || 0), 0);
+      return {
+        avgOpenRate: sent ? Math.round((opens / sent) * 100) : 0,
+        avgClickRate: 0,
+        totalSent: sent
+      };
+    }
+
+    const { url, key } = getSupabaseConfig();
+    const user = authService.getCurrentUser();
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const headers = await getHeaders(key);
+
+    const res = await fetch(`${baseUrl}/rest/v1/statistics?user_id=eq.${user?.id}&select=*`, { headers });
+    if (!res.ok) return { avgOpenRate: 0, avgClickRate: 0, totalSent: 0 };
+
+    const stats = await res.json();
+    if (!stats.length) return { avgOpenRate: 0, avgClickRate: 0, totalSent: 0 };
+
+    const totalOpens = stats.reduce((acc: number, s: any) => acc + (s.opens || 0), 0);
+    const totalClicks = stats.reduce((acc: number, s: any) => acc + (s.clicks || 0), 0);
+    const totalSent = stats.reduce((acc: number, s: any) => acc + (s.sent_count || 0), 0);
+
+    return {
+      avgOpenRate: totalSent ? Math.round((totalOpens / totalSent) * 100) : 0,
+      avgClickRate: totalSent ? Math.round((totalClicks / totalSent) * 100) : 0,
+      totalSent
+    };
+  },
+
   async initializeDemoData(userId: string): Promise<void> {
     if (isUsingCloud()) return;
     if (storage.get('brands').length > 0) return;
