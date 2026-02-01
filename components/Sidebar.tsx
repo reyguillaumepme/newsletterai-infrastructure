@@ -13,7 +13,8 @@ import {
   Zap,
   ZapOff,
   Database,
-  User
+  User,
+  Settings
 } from 'lucide-react';
 import { authService, getSupabaseConfig } from '../services/authService';
 import { databaseService } from '../services/databaseService';
@@ -50,6 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { name: 'Idées', icon: Lightbulb, path: '/ideas' },
     { name: 'Marques', icon: Briefcase, path: '/brands' },
     { name: 'Statistiques', icon: BarChart3, path: '/statistics' },
+    { name: 'Paramètres', icon: Settings, path: '/settings' },
   ];
 
   const handleNavClick = (path: string) => {

@@ -61,6 +61,7 @@ const BrandDetail: React.FC = () => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Partial<Contact>>({});
   const [isSavingContact, setIsSavingContact] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null); // New Profile State
 
   const currentUser = authService.getCurrentUser();
   const isDemo = false;
@@ -89,8 +90,10 @@ const BrandDetail: React.FC = () => {
         }
       }
       setIsPageLoading(false);
+      setIsPageLoading(false);
     };
     loadBrand();
+    databaseService.fetchMyProfile().then(setUserProfile);
   }, [id]);
 
   // CHARGEMENT CONTACTS (Lazy load sur l'onglet audience)
@@ -171,9 +174,23 @@ const BrandDetail: React.FC = () => {
       return;
     }
 
+    // CREDIT CHECK
+    const currentCredits = userProfile?.credits ?? 0;
+    if (currentCredits <= 0) {
+      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour générer une stratégie.");
+      return;
+    }
+
     setIsLoading(p => ({ ...p, strategy: true }));
     try {
       const result = await generateNewsletterStrategy(brand);
+
+      // DEDUCT CREDIT
+      const success = await databaseService.deductUserCredit(currentUser?.id || '');
+      if (success) {
+        setUserProfile((prev: any) => ({ ...prev, credits: Math.max(0, (prev?.credits || 0) - 1) }));
+      }
+
       setStrategy(result);
       setSections(prev => ({ ...prev, strategy: true }));
       await databaseService.updateBrand(brand.id, {
@@ -594,8 +611,8 @@ const BrandDetail: React.FC = () => {
                         <td className="px-6 py-4 text-xs font-medium text-gray-500">{contact.first_name} {contact.last_name}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border ${contact.status === 'subscribed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                              contact.status === 'unsubscribed' ? 'bg-gray-100 text-gray-500 border-gray-200' :
-                                'bg-red-50 text-red-600 border-red-100'
+                            contact.status === 'unsubscribed' ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                              'bg-red-50 text-red-600 border-red-100'
                             }`}>
                             {contact.status}
                           </span>

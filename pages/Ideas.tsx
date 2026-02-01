@@ -61,6 +61,7 @@ const VISUAL_STYLES = [
 const Ideas: React.FC = () => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null); // New Profile State
   const [isLoading, setIsLoading] = useState(true);
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null);
   const [isCreatingModalOpen, setIsCreatingModalOpen] = useState(false);
@@ -98,9 +99,14 @@ const Ideas: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [iData, bData] = await Promise.all([databaseService.fetchIdeas(), databaseService.fetchBrands()]);
+      const [iData, bData, pData] = await Promise.all([
+        databaseService.fetchIdeas(),
+        databaseService.fetchBrands(),
+        databaseService.fetchMyProfile()
+      ]);
       setIdeas(iData || []);
       setBrands(bData || []);
+      setUserProfile(pData);
     } finally {
       setIsLoading(false);
     }
@@ -288,10 +294,25 @@ const Ideas: React.FC = () => {
 
   const handleEnhanceWithAI = async () => {
     if (!selectedIdea || isDemo) return;
+
+    // CREDIT CHECK
+    const currentCredits = userProfile?.credits ?? 0;
+    if (currentCredits <= 0) {
+      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour utiliser l'IA.");
+      return;
+    }
+
     setIsAILoading(true);
     try {
       const brand = brands.find(b => b.id === selectedIdea.brand_id);
       const enhanced = await enhanceIdeaWithAI(selectedIdea, brand);
+
+      // DEDUCT CREDIT
+      const success = await databaseService.deductUserCredit(user?.id || '');
+      if (success) {
+        setUserProfile((prev: any) => ({ ...prev, credits: Math.max(0, (prev?.credits || 0) - 1) }));
+      }
+
       startTransition(() => {
         setSelectedIdea(prev => prev ? { ...prev, ...enhanced } : null);
       });
@@ -302,12 +323,27 @@ const Ideas: React.FC = () => {
 
   const handleGenerateImage = async () => {
     if (!studioPrompt || isGeneratingImage) return;
+
+    // CREDIT CHECK
+    const currentCredits = userProfile?.credits ?? 0;
+    if (currentCredits <= 0) {
+      alert("⚠️ Crédits insuffisants !\n\nRechargez votre compte pour générer des images.");
+      return;
+    }
+
     setIsGeneratingImage(true);
     setEditTab('generate'); // Ensure we are in generate mode
     try {
       // Pass importedImage (if any) to Service for Image-to-Image
       // The Service needs to be updated to handle this argument
       const url = await generateImageFromPrompt(studioPrompt, selectedStyle.prefix, aspectRatio, importedImage);
+
+      // DEDUCT CREDIT
+      const success = await databaseService.deductUserCredit(user?.id || '');
+      if (success) {
+        setUserProfile((prev: any) => ({ ...prev, credits: Math.max(0, (prev?.credits || 0) - 1) }));
+      }
+
       setStudioImagePreview(url);
       setImportedImage(null); // Clear imported after generation (or keep it as reference?) -> Let's keep logic simple: new image replaces old
       setImageFilters({ brightness: 100, contrast: 100, saturation: 100 }); // Reset filters for new image

@@ -162,7 +162,7 @@ export const databaseService = {
       const { url, key } = getSupabaseConfig();
       const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
       const headers = await getHeaders(key);
-      const res = await fetch(`${baseUrl}/rest/v1/profiles?id=eq.${user.id}&select=*`, { headers });
+      const res = await fetch(`${baseUrl}/rest/v1/profiles?id=eq.${user.id}&select=*`, { headers, cache: 'no-store' });
       const data = await res.json();
       return Array.isArray(data) ? data[0] : null;
     } catch (e) { return null; }
@@ -185,30 +185,42 @@ export const databaseService = {
     const { url, key } = getSupabaseConfig();
     const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
     const headers = await getHeaders(key);
-    headers['Prefer'] = 'return=representation,resolution=merge';
-
-    await fetch(`${baseUrl}/rest/v1/profiles`, {
-      method: 'POST',
+    const res = await fetch(`${baseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
+      method: 'PATCH',
       headers,
-      body: JSON.stringify({ ...updates, id: user.id })
+      body: JSON.stringify(updates)
     });
+
+    if (!res.ok) {
+      console.error("Error updating profile:", await res.text());
+    }
   },
 
   async deductUserCredit(userId: string): Promise<boolean> {
     const user = authService.getCurrentUser();
-    if (!user || !isUsingCloud()) return true; // Assume success in demo/local
+    console.log(`[DEDUCT] Attempting for user: ${user?.id}`);
+
+    if (!user || !isUsingCloud()) {
+      console.log("[DEDUCT] User not found or not cloud");
+      return true;
+    }
 
     try {
       const profile = await this.fetchMyProfile();
+      console.log(`[DEDUCT] Current profile credits: ${profile?.credits}`);
+
       if (!profile || (profile.credits !== undefined && profile.credits <= 0)) {
+        console.warn("[DEDUCT] Insufficient credits or profile missing");
         return false;
       }
 
       const newCredits = (profile.credits || 0) - 1;
+      console.log(`[DEDUCT] Updating to: ${newCredits}`);
+
       await this.updateProfile({ credits: newCredits });
       return true;
     } catch (e) {
-      console.error("Error deducting credit:", e);
+      console.error("[DEDUCT] Error:", e);
       return false;
     }
   },

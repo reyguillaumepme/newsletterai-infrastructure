@@ -15,7 +15,8 @@ import {
   Info,
   Sparkles,
   Layout,
-  MousePointer2
+  MousePointer2,
+  Terminal
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { databaseService } from '../services/databaseService';
@@ -234,6 +235,28 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
+
+
+            {/* DEBUG SECTION (Localhost Only) */}
+            {window.location.hostname === 'localhost' && (
+              <section className="space-y-6 pt-6 border-t border-gray-100">
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <Terminal size={16} />
+                  Zone de Debug
+                </h2>
+                <div className="p-4 bg-gray-50 rounded-2xl space-y-4">
+                  <button
+                    onClick={async () => {
+                      const success = await databaseService.deductUserCredit(user?.id || '');
+                      alert(success ? "Succès ! 1 crédit déduit." : "Échec de la déduction. Vérifiez la console.");
+                    }}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold"
+                  >
+                    Test Déduction Crédit
+                  </button>
+                </div>
+              </section>
+            )}
 
             <div className="pt-6 border-t border-gray-50 space-y-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Identité de session</p>
