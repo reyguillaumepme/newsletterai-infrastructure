@@ -37,7 +37,8 @@ import {
 import { databaseService } from '../services/databaseService';
 import { authService } from '../services/authService';
 import { enhanceIdeaWithAI, generateImageFromPrompt } from '../services/geminiService';
-import { Idea, Brand } from '../types';
+import DeleteIdeaModal from '../components/DeleteIdeaModal';
+import { Idea, Brand, Newsletter } from '../types';
 import UpgradeModal from '../components/UpgradeModal';
 
 const QUILL_MODULES = {
@@ -91,9 +92,10 @@ const Ideas: React.FC = () => {
     contrast: 100,
     saturation: 100
   });
-
-  // Upgrade Modal State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [deleteIdeaState, setDeleteIdeaState] = useState<{ isOpen: boolean; idea: Idea | null; newsletter: Newsletter | null }>({
+    isOpen: false, idea: null, newsletter: null
+  });
 
   const [newIdea, setNewIdea] = useState({ title: '', brand_id: '', content: '' });
 
@@ -256,7 +258,17 @@ const Ideas: React.FC = () => {
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
               {idea.image_prompt && <span className="flex items-center gap-1 text-purple-500 bg-purple-50 px-2 py-1 rounded-md"><Sparkles size={10} /> Prompt Généré</span>}
             </div>
-            <button onClick={(e) => { e.stopPropagation(); startTransition(() => { databaseService.deleteIdea(idea.id).then(loadData); }); }} className="text-gray-300 hover:text-red-500 transition-colors p-1">
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                let nl: Newsletter | null = null;
+                if (idea.newsletter_id) {
+                  nl = await databaseService.fetchNewsletterById(idea.newsletter_id);
+                }
+                setDeleteIdeaState({ isOpen: true, idea: idea, newsletter: nl });
+              }}
+              className="text-gray-300 hover:text-red-500 transition-colors p-1"
+            >
               <Trash2 size={14} />
             </button>
           </div>
@@ -1020,6 +1032,20 @@ const Ideas: React.FC = () => {
           currentPlan={userProfile?.subscription_plan || 'free'}
         />
       )}
+      {/* DELETE IDEA MODAL */}
+      <DeleteIdeaModal
+        isOpen={deleteIdeaState.isOpen}
+        onClose={() => setDeleteIdeaState(prev => ({ ...prev, isOpen: false }))}
+        idea={deleteIdeaState.idea}
+        associatedNewsletter={deleteIdeaState.newsletter}
+        onConfirm={async () => {
+          if (deleteIdeaState.idea) {
+            await databaseService.deleteIdea(deleteIdeaState.idea.id);
+            setDeleteIdeaState(prev => ({ ...prev, isOpen: false }));
+            await loadData();
+          }
+        }}
+      />
     </div>
   );
 };

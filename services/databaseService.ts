@@ -448,6 +448,8 @@ export const databaseService = {
     return Array.isArray(data) ? data[0] : data;
   },
 
+
+
   async updateNewsletter(id: string, fields: Partial<Newsletter>): Promise<Newsletter | null> {
     if (!isUsingCloud()) {
       const items = storage.get('newsletters');
