@@ -312,5 +312,26 @@ export const mailService = {
       console.warn("Brevo Remove Contact Warning:", errorData);
     }
     return true;
+  },
+
+  async blacklistContactInBrevo(email: string) {
+    const headers = await getBrevoHeaders();
+
+    // On utilise l'endpoint update contact pour mettre emailBlacklisted à true
+    // https://developers.brevo.com/reference/accounting-updatecontact
+    // PUT /contacts/{email}
+    const res = await fetch(`${BREVO_API_URL}/contacts/${encodeURIComponent(email)}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        emailBlacklisted: true
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.warn("Brevo Blacklist Contact Warning:", errorData);
+    }
+    return true;
   }
 };

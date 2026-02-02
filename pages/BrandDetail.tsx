@@ -268,7 +268,8 @@ const BrandDetail: React.FC = () => {
         // Synchronisation Contact Brevo (Ajout ou Suppression)
         if (listId && editingContact.email) {
           if (editingContact.status === 'unsubscribed') {
-            await mailService.removeContactFromBrevoList(listId, [editingContact.email]);
+            // Modification demandée : on ne retire plus de la liste, on blacklist pour empêcher les envois sans perdre l'historique
+            await mailService.blacklistContactInBrevo(editingContact.email);
           } else {
             await mailService.addContactToBrevoList(listId, editingContact.email, {
               PRENOM: editingContact.first_name || '',
