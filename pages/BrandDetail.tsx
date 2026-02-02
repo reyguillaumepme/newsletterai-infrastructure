@@ -271,6 +271,9 @@ const BrandDetail: React.FC = () => {
             // Modification demandée : on ne retire plus de la liste, on blacklist pour empêcher les envois sans perdre l'historique
             await mailService.blacklistContactInBrevo(editingContact.email);
           } else {
+            // Cas réabonnement : on s'assure qu'il n'est plus blacklisté
+            await mailService.whitelistContactInBrevo(editingContact.email);
+
             await mailService.addContactToBrevoList(listId, editingContact.email, {
               PRENOM: editingContact.first_name || '',
               NOM: editingContact.last_name || ''
