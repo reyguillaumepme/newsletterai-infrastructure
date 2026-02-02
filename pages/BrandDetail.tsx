@@ -254,10 +254,7 @@ const BrandDetail: React.FC = () => {
             const folderId = await mailService.createBrevoFolder("NewsletterAI");
 
             // Standard Naming Convention: [Profile Name] - [Brand Name]
-            const profileName = userProfile?.first_name
-              ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
-              : (userProfile?.name || 'Utilisateur');
-
+            const profileName = userProfile?.name || 'Utilisateur';
             const listName = `${profileName} - ${brand.brand_name}`;
 
             listId = await mailService.createBrevoList(listName, folderId);
