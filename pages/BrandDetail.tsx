@@ -252,7 +252,14 @@ const BrandDetail: React.FC = () => {
         if (!listId) {
           try {
             const folderId = await mailService.createBrevoFolder("NewsletterAI");
-            const listName = userProfile?.name ? `${userProfile.name} - ${brand.brand_name}` : brand.brand_name;
+
+            // Standard Naming Convention: [Profile Name] - [Brand Name]
+            const profileName = userProfile?.first_name
+              ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
+              : (userProfile?.name || 'Utilisateur');
+
+            const listName = `${profileName} - ${brand.brand_name}`;
+
             listId = await mailService.createBrevoList(listName, folderId);
 
             // Mise à jour de la marque avec l'ID de liste
@@ -262,6 +269,7 @@ const BrandDetail: React.FC = () => {
             setBrand(prev => prev ? { ...prev, brevo_list_id: listId } : null);
           } catch (e) {
             console.error("Erreur création liste Brevo", e);
+            // On ne bloque pas tout, mais l'ajout contact Brevo échouera probablement
           }
         }
 
