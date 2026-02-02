@@ -12,12 +12,17 @@ export const MASTER_CONFIG = {
  * Récupère la configuration Supabase active.
  */
 export const getSupabaseConfig = () => {
-  const url = localStorage.getItem('SUPABASE_URL')?.trim();
-  const key = localStorage.getItem('SUPABASE_ANON_KEY')?.trim();
+  // 1. Environment Variables (Build time / Vercel)
+  const envUrl = import.meta.env.VITE_SUPABASE_URL;
+  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  // 2. Local Storage (User override)
+  const localUrl = localStorage.getItem('SUPABASE_URL')?.trim();
+  const localKey = localStorage.getItem('SUPABASE_ANON_KEY')?.trim();
 
   return {
-    url: url || MASTER_CONFIG.url,
-    key: key || MASTER_CONFIG.key
+    url: envUrl || localUrl || MASTER_CONFIG.url,
+    key: envKey || localKey || MASTER_CONFIG.key
   };
 };
 
