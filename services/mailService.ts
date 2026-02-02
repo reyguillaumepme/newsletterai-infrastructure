@@ -296,5 +296,21 @@ export const mailService = {
       // On ne throw pas forcément pour ne pas bloquer l'UI, sauf erreur critique
     }
     return true;
+  },
+
+  async removeContactFromBrevoList(listId: number, emails: string[]) {
+    const headers = await getBrevoHeaders();
+
+    const res = await fetch(`${BREVO_API_URL}/contacts/lists/${listId}/contacts/remove`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ emails })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.warn("Brevo Remove Contact Warning:", errorData);
+    }
+    return true;
   }
 };
