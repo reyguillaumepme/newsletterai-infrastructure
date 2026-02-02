@@ -72,6 +72,11 @@ serve(async (req) => {
                 fetchMethod = "PUT";
                 fetchBody = { listIds: [], emailBlacklisted: true }; // Example logic
                 break;
+            case "sendTestEmail":
+                // Endpoint: /smtp/email
+                url = `${BREVO_API_URL}/smtp/email`;
+                fetchBody = body; // Pass sender, to, subject, htmlContent directly
+                break;
             default:
                 // Fallback for generic proxy (restricted)
                 throw new Error("Action non supportée ou invalide.");
