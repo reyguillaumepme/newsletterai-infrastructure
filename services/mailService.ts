@@ -333,5 +333,24 @@ export const mailService = {
       console.warn("Brevo Blacklist Contact Warning:", errorData);
     }
     return true;
+  },
+
+  async whitelistContactInBrevo(email: string) {
+    const headers = await getBrevoHeaders();
+
+    // On utilise l'endpoint update contact pour mettre emailBlacklisted à false
+    const res = await fetch(`${BREVO_API_URL}/contacts/${encodeURIComponent(email)}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        emailBlacklisted: false
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.warn("Brevo Whitelist Contact Warning:", errorData);
+    }
+    return true;
   }
 };
