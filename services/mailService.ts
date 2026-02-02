@@ -228,129 +228,106 @@ export const mailService = {
 
   // --- NOUVELLES MÉTHODES DE GESTION DE LISTES ---
 
+  // --- NOUVELLES MÉTHODES DE GESTION DE LISTES (SaaS - Secure Proxy) ---
+
   async createBrevoFolder(name: string): Promise<number> {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Infrastructure Supabase déconnectée.");
 
-    // 1. Chercher si le dossier existe déjà
-    try {
-      const res = await fetch(`${BREVO_API_URL}/contacts/folders?limit=50&offset=0`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        const existing = data.folders?.find((f: any) => f.name === name);
-        if (existing) return existing.id;
-      }
-    } catch (e) {
-      console.warn("Erreur lecture dossiers Brevo", e);
-    }
-
-    // 2. Créer le dossier
-    const res = await fetch(`${BREVO_API_URL}/contacts/folders`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ name })
+    const { data, error } = await supabase.functions.invoke('brevo-api', {
+      body: { action: 'createFolder', body: { name } }
     });
 
-    if (!res.ok) throw new Error(`Erreur création dossier Brevo: ${res.status}`);
-    const data = await res.json();
+    if (error) throw new Error(error.message || "Erreur Edge Function Folder");
+    if (data.error) throw new Error(data.error);
+
     return data.id;
   },
 
   async createBrevoList(name: string, folderId: number): Promise<number> {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Infrastructure Supabase déconnectée.");
 
-    const res = await fetch(`${BREVO_API_URL}/contacts/lists`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ name, folderId })
+    const { data, error } = await supabase.functions.invoke('brevo-api', {
+      body: { action: 'createList', body: { name, folderId } }
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || `Erreur création liste Brevo: ${res.status}`);
-    }
+    if (error) throw new Error(error.message || "Erreur Edge Function List");
+    if (data.error) throw new Error(data.error);
 
-    const data = await res.json();
     return data.id;
   },
 
   async addContactToBrevoList(listId: number, email: string, attributes: any = {}) {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
 
-    // On utilise l'endpoint de création/update (DOI = false par défaut)
-    const res = await fetch(`${BREVO_API_URL}/contacts`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        email,
-        listIds: [listId],
-        updateEnabled: true, // Mettre à jour si existe
-        attributes
-      })
+    const { error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'addContact',
+        body: {
+          email,
+          listIds: [listId],
+          attributes
+        }
+      }
     });
 
-    if (!res.ok) {
-      // Ignorer si le contact existe déjà (cas updateEnabled=false, mais ici true donc devrait passer)
-      // Parfois Brevo renvoie une erreur si le contact est blacklisté, etc.
-      const errorData = await res.json();
-      console.warn("Brevo Add Contact Warning:", errorData);
-      // On ne throw pas forcément pour ne pas bloquer l'UI, sauf erreur critique
-    }
-    return true;
+    if (error) console.warn("Erreur ajout contact Brevo:", error);
+    return !error;
   },
 
   async removeContactFromBrevoList(listId: number, emails: string[]) {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
 
-    const res = await fetch(`${BREVO_API_URL}/contacts/lists/${listId}/contacts/remove`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ emails })
+    const { error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'removeContact',
+        body: {
+          listId,
+          emails
+        }
+      }
     });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.warn("Brevo Remove Contact Warning:", errorData);
-    }
-    return true;
+    if (error) console.warn("Erreur suppression contact Brevo:", error);
+    return !error;
   },
 
   async blacklistContactInBrevo(email: string) {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
 
-    // On utilise l'endpoint update contact pour mettre emailBlacklisted à true
-    // https://developers.brevo.com/reference/accounting-updatecontact
-    // PUT /contacts/{email}
-    const res = await fetch(`${BREVO_API_URL}/contacts/${encodeURIComponent(email)}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        emailBlacklisted: true
-      })
+    const { error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'blacklist',
+        body: { email }
+      }
     });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.warn("Brevo Blacklist Contact Warning:", errorData);
-    }
-    return true;
+    if (error) console.warn("Erreur blacklist Brevo:", error);
+    return !error;
   },
 
   async whitelistContactInBrevo(email: string) {
-    const headers = await getBrevoHeaders();
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
 
-    // On utilise l'endpoint update contact pour mettre emailBlacklisted à false
-    const res = await fetch(`${BREVO_API_URL}/contacts/${encodeURIComponent(email)}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({
-        emailBlacklisted: false
-      })
+    const { error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'whitelist',
+        body: { email }
+      }
     });
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.warn("Brevo Whitelist Contact Warning:", errorData);
-    }
-    return true;
+    if (error) console.warn("Erreur whitelist Brevo:", error);
+    return !error;
   }
 };
