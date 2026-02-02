@@ -54,9 +54,14 @@ serve(async (req) => {
 
         let BREVO_KEY = profile?.brevo_api_key;
 
-        // Fallback to provided key
+        // Fallback to provided key from body
         if (!BREVO_KEY && apiKey) {
             BREVO_KEY = apiKey;
+        }
+
+        // Final Fallback: Use Master SaaS Key from Secrets
+        if (!BREVO_KEY) {
+            BREVO_KEY = Deno.env.get('BREVO_API_KEY');
         }
 
         if (!BREVO_KEY) {
