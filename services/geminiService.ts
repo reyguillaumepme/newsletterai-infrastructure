@@ -29,7 +29,11 @@ export const generateNewsletterStrategy = async (brand: Brand): Promise<Structur
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    return JSON.parse(text.trim());
+
+    // Nettoyage des blocs de code Markdown potentiels (fréquent avec Gemini)
+    const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    return JSON.parse(cleanedText);
   } catch (e) {
     console.error("Erreur génération stratégie:", e);
     throw new Error("Erreur de génération du JSON stratégique.");
