@@ -265,12 +265,16 @@ const BrandDetail: React.FC = () => {
           }
         }
 
-        // Ajout du contact à la liste Brevo
+        // Synchronisation Contact Brevo (Ajout ou Suppression)
         if (listId && editingContact.email) {
-          await mailService.addContactToBrevoList(listId, editingContact.email, {
-            PRENOM: editingContact.first_name || '',
-            NOM: editingContact.last_name || ''
-          });
+          if (editingContact.status === 'unsubscribed') {
+            await mailService.removeContactFromBrevoList(listId, [editingContact.email]);
+          } else {
+            await mailService.addContactToBrevoList(listId, editingContact.email, {
+              PRENOM: editingContact.first_name || '',
+              NOM: editingContact.last_name || ''
+            });
+          }
         }
       } catch (brevoError) {
         console.error("Erreur Sync Brevo general:", brevoError);
@@ -289,6 +293,18 @@ const BrandDetail: React.FC = () => {
 
   const handleDeleteContact = async (contactId: string) => {
     if (window.confirm("Supprimer ce contact définitivement ?")) {
+      const contactToDelete = contacts.find(c => c.id === contactId);
+
+      // 1. Sync Brevo Suppression
+      if (brand?.brevo_list_id && contactToDelete?.email) {
+        try {
+          await mailService.removeContactFromBrevoList(brand.brevo_list_id, [contactToDelete.email]);
+        } catch (e) {
+          console.error("Erreur sync suppression Brevo", e);
+        }
+      }
+
+      // 2. Suppression locale
       await databaseService.deleteContact(contactId);
       await loadContacts();
     }
