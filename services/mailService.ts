@@ -29,89 +29,56 @@ export const mailService = {
     subject: string,
     htmlContent: string,
     brandName: string,
-    brandId?: string // Paramètre optionnel
+    brandId?: string
   }) {
-    // 1. Initialisation par défaut
-    let brevoKey = "";
+    // 1. Resolve Sender
     let senderEmail = "noreply@newsletteria.online";
     let senderName = params.brandName || "NewsletterAI";
 
     try {
-      // 2. Priorité 1 : Configuration de la Marque spécifique si brandId est fourni
       if (params.brandId) {
         const brand = await databaseService.fetchBrandById(params.brandId);
         if (brand) {
           if (brand.sender_email) senderEmail = brand.sender_email;
           if (brand.sender_name) senderName = brand.sender_name;
         }
-      }
-
-      // 3. Priorité 2 (Fallback) : Configuration globale du Profil
-      const profile = await databaseService.fetchMyProfile();
-      if (profile) {
-        if (profile.brevo_api_key) {
-          brevoKey = profile.brevo_api_key;
-          localStorage.setItem('MASTER_BREVO_KEY', brevoKey);
-        }
-        // Si la marque n'a pas écrasé l'email/nom, on utilise celui du profil
-        if (!params.brandId || (params.brandId && !senderEmail)) {
+      } else {
+        const profile = await databaseService.fetchMyProfile();
+        if (profile) {
           if (profile.sender_email) senderEmail = profile.sender_email;
           if (profile.sender_name) senderName = profile.sender_name;
         }
       }
-    } catch (e) {
-      console.warn("Impossible de récupérer la configuration complète d'envoi.");
-    }
+    } catch (e) { }
 
-    // 4. Repli sur le cache local pour la clé si besoin
-    if (!brevoKey) {
-      brevoKey = localStorage.getItem('MASTER_BREVO_KEY') || "";
-    }
+    // 2. Call Secure Proxy (Edge Function)
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) throw new Error("Supabase non connecté");
 
-    if (!brevoKey || brevoKey.trim() === "") {
-      throw new Error("Clé API Brevo manquante. Veuillez la configurer dans vos paramètres.");
-    }
+    // We send payload to brevo-api action='sendTestEmail'
+    const payload = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: params.to }],
+      subject: params.subject.startsWith('[TEST]') ? params.subject : `[TEST] ${params.subject}`,
+      htmlContent: params.htmlContent
+    };
 
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoKey.trim(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: {
-            name: senderName,
-            email: senderEmail
-          },
-          to: [{ email: params.to }],
-          subject: params.subject.startsWith('[TEST]') ? params.subject : params.subject,
-          htmlContent: params.htmlContent
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `Erreur HTTP ${response.status}` }));
-
-        if (errorData.code === 'unauthorized' || response.status === 401) {
-          throw new Error("Clé API Brevo invalide ou expirée.");
-        }
-
-        if (errorData.message?.includes('sender') || errorData.code === 'invalid_parameter') {
-          throw new Error(`L'expéditeur '${senderEmail}' n'est pas autorisé dans votre compte Brevo. Vérifiez vos 'Senders' sur Brevo.`);
-        }
-
-        throw new Error(errorData.message || `Erreur Brevo (${response.status})`);
+    const { data, error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'sendTestEmail',
+        body: payload
       }
+    });
 
-      return await response.json();
-    } catch (err: any) {
-      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        throw new Error("Impossible de contacter Brevo (CORS ou Réseau).");
-      }
-      throw err;
+    if (error) {
+      console.error("Erreur Edge Function Test Email:", error);
+      throw new Error(error.message || "Erreur d'envoi via le proxy sécurisé");
     }
+
+    if (data.error) throw new Error(data.error);
+
+    return data;
   },
 
   async sendNewsletter(params: {
