@@ -22,6 +22,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const checkPasswordStrength = (pass: string) => {
     let score = 0;
@@ -92,8 +93,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
           setIsLogin(true);
           setIsLoading(false);
           setError("");
-          // Optional: Show success message
-          alert("Compte créé avec succès ! Connectez-vous maintenant.");
+          setSuccessMessage("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
         });
       }
     } catch (err: any) {
@@ -109,6 +109,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     startTransition(() => {
       setIsLogin(!isLogin);
       setError('');
+      setSuccessMessage('');
       setFormData({ email: '', password: '', confirmPassword: '' });
       setPasswordStrength(0);
     });
@@ -265,6 +266,16 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                         Se connecter à ce compte
                       </button>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <Check size={18} className="text-green-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-green-800 mb-0.5">Succès</p>
+                    <p className="text-xs text-green-600 font-medium leading-relaxed">{successMessage}</p>
                   </div>
                 </div>
               )}
