@@ -88,6 +88,15 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         if (passwordStrength < 2) {
           throw new Error("Le mot de passe est trop faible. Il doit contenir au moins 8 caractères, un chiffre ou une majuscule.");
         }
+
+        // Check if user exists explicitly before signing up
+        const userExists = await authService.checkUserExists(formData.email);
+        if (userExists) {
+          throw new Error("Cette adresse email est déjà associée à un compte. Veuillez vous connecter.");
+        }
+
+
+
         await authService.signUp(formData.email, formData.password);
         startTransition(() => {
           setIsLogin(true);
@@ -97,9 +106,15 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         });
       }
     } catch (err: any) {
-      const friendlyMsg = err.message === "Les mots de passe ne correspondent pas." || err.message.includes("trop faible")
-        ? err.message
-        : getFriendlyErrorMessage(err);
+      let friendlyMsg = getFriendlyErrorMessage(err);
+
+      // Keep specific internal errors
+      if (err.message === "Les mots de passe ne correspondent pas." ||
+        err.message.includes("trop faible") ||
+        err.message.includes("déjà associée")) {
+        friendlyMsg = err.message;
+      }
+
       setError(friendlyMsg);
       setIsLoading(false);
     }

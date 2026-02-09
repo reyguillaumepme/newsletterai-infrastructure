@@ -143,6 +143,18 @@ export const authService = {
     return { email: cleanEmail };
   },
 
+  async checkUserExists(email: string) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { data, error } = await supabase.rpc('check_user_exists', { email_to_check: email });
+    if (error) {
+      console.error("Error checking user existence:", error);
+      return false;
+    }
+    return data;
+  },
+
   async signOut() {
     const user = this.getCurrentUser();
     const supabase = getSupabaseClient();
