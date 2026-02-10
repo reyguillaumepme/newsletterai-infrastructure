@@ -28,7 +28,7 @@ const LandingPage: React.FC = () => {
                         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                             <Sparkles className="text-white w-5 h-5" />
                         </div>
-                        <span className="font-extrabold text-xl tracking-tight">NewsletterAI</span>
+                        <span className="font-extrabold text-xl tracking-tight">Nwsletter<span className="text-yellow-500">IA</span></span>
                     </div>
                     <div className="flex items-center gap-6">
                         <button onClick={() => navigate('/auth?mode=login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Connexion</button>
@@ -80,7 +80,7 @@ const LandingPage: React.FC = () => {
             <section className="py-24 bg-slate-50 relative">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center max-w-3xl mx-auto mb-20">
-                        <h2 className="text-3xl font-black mb-6 uppercase tracking-tight">Pourquoi NewsletterAI ?</h2>
+                        <h2 className="text-3xl font-black mb-6 uppercase tracking-tight">Pourquoi NwsletterIA ?</h2>
                         <p className="text-slate-500 text-lg">Une suite complète d'outils conçus pour transformer votre simple email en une machine à engagement.</p>
                     </div>
 
@@ -221,7 +221,7 @@ const LandingPage: React.FC = () => {
             </section>
 
             <footer className="py-10 bg-slate-950 text-slate-600 text-center text-sm border-t border-slate-800">
-                <p>&copy; 2026 NewsletterAI. Tous droits réservés.</p>
+                <p>&copy; 2026 NwsletterIA. Tous droits réservés.</p>
             </footer>
         </div>
     );

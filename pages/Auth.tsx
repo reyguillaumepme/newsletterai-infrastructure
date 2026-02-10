@@ -141,7 +141,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 mb-2 font-['Sora']">
-            Newsletter<span className="text-blue-600">AI</span>
+            Nwsletter<span className="text-yellow-500">IA</span>
           </h1>
           <p className="text-gray-500 font-medium">Votre assistant intelligent de création</p>
         </div>

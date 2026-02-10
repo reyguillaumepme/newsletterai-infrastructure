@@ -67,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     >
       <div className="p-6 flex items-center justify-between">
         {!isCollapsed && (
-          <h1 className="text-xl font-bold tracking-tight">Newsletter<span className="text-primary">AI</span></h1>
+          <h1 className="text-xl font-bold tracking-tight">Nwsletter<span className="text-yellow-500">IA</span></h1>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
