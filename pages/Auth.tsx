@@ -141,7 +141,7 @@ const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
         {/* Header */}
         <div className="text-center mb-10">
           <div className="flex justify-center mb-6">
-            <img src="/logo.jpg" alt="NwsletterIA" className="h-16 w-auto" />
+            <img src="/logo.jpg" alt="NwsletterIA" className="h-20 w-auto" />
           </div>
           <p className="text-gray-500 font-medium">Votre assistant intelligent de création</p>
         </div>
