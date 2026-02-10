@@ -26,7 +26,7 @@ const LandingPage: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
 
-                        <img src="/logo.jpg" alt="NwsletterIA" className="h-14 w-auto" />
+                        <img src="/logo.jpg" alt="NwsletterIA" className="h-20 w-auto" />
                     </div>
                     <div className="flex items-center gap-6">
                         <button onClick={() => navigate('/auth?mode=login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Connexion</button>
