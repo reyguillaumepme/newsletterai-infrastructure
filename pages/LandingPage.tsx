@@ -25,10 +25,8 @@ const LandingPage: React.FC = () => {
             <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                            <Sparkles className="text-white w-5 h-5" />
-                        </div>
-                        <span className="font-extrabold text-xl tracking-tight">Nwsletter<span className="text-yellow-500">IA</span></span>
+
+                        <img src="/logo.jpg" alt="NwsletterIA" className="h-8 w-auto" />
                     </div>
                     <div className="flex items-center gap-6">
                         <button onClick={() => navigate('/auth?mode=login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Connexion</button>
