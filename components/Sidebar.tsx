@@ -67,7 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     >
       <div className="p-6 flex items-center justify-between">
         {!isCollapsed && (
-          <img src="/logo.jpg" alt="NwsletterIA" className="h-8 w-auto" />
+          <img src="/logo.jpg" alt="NwsletterIA" className="h-11 w-auto" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
