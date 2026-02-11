@@ -11,8 +11,6 @@ const LandingPage: React.FC = () => {
             const pricingSection = document.getElementById('pricing');
             if (pricingSection) {
                 pricingSection.scrollIntoView({ behavior: 'smooth' });
-                // Clear state to avoid scrolling on subsequent renders/refreshes if possible, 
-                // though navigate replace is better, this is simple enough.
                 window.history.replaceState({}, document.title);
             }
         }
@@ -21,56 +19,64 @@ const LandingPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-primary selection:text-white overflow-x-hidden">
 
-            {/* Navigation */}
-            <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+            {/* Navigation — fixed white bar, always visible */}
+            <nav className="fixed top-0 left-0 w-full z-50 bg-white border-b border-slate-100 shadow-sm">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-
                         <img src="/logo.jpg" alt="NwsletterIA" className="h-20 w-auto" />
                     </div>
                     <div className="flex items-center gap-6">
                         <button onClick={() => navigate('/auth?mode=login')} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Connexion</button>
-                        <button onClick={() => navigate('/auth?mode=register')} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-primary transition-all hover:scale-105 shadow-lg shadow-slate-900/20 hover:shadow-primary/30">
+                        <button onClick={() => navigate('/auth?mode=register')} className="px-5 py-2.5 bg-primary text-slate-900 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-yellow-400 transition-all hover:scale-105 shadow-lg shadow-primary/30">
                             Démarrer Gratuitement
                         </button>
                     </div>
                 </div>
             </nav>
+            {/* Spacer for fixed nav */}
+            <div className="h-20"></div>
 
-            {/* Hero Section */}
-            <header className="relative pt-32 pb-32 lg:pt-48 lg:pb-40 overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
-                    <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl opacity-50 mix-blend-multiply animate-blob"></div>
-                    <div className="absolute top-40 left-0 w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-3xl opacity-50 mix-blend-multiply animate-blob animation-delay-2000"></div>
-                </div>
+            {/* Refactored Hero Section: Text Top -> Video Middle -> Text Bottom */}
+            <header className="relative w-full pt-12 pb-24 bg-white text-center">
+                <div className="max-w-7xl mx-auto px-6">
 
-                <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-100 mb-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nouvelle Version 2.0 Disponible</span>
+                    {/* 1. TOP: Badge & Title */}
+                    <div className="max-w-4xl mx-auto mb-12">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-100 mb-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Nouvelle Version 2.0 Disponible</span>
+                        </div>
+
+                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                            Votre Newsletter. <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600">Sous Stéroïdes.</span>
+                        </h1>
                     </div>
 
-                    <h1 className="text-5xl lg:text-7xl font-black mb-8 tracking-tight leading-[1.1] text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                        Votre Newsletter. <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600">Sous Stéroïdes.</span>
-                    </h1>
+                    {/* 2. MIDDLE: Video */}
+                    <div className="relative max-w-5xl mx-auto mb-12 rounded-2xl overflow-hidden shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-[1200ms]">
+                        <video
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-auto block"
+                            src="/ProductVideo.mp4"
+                        />
+                        {/* Optional overlay to ensure video doesn't clash if it has light parts, usually not needed for product demos but keeps it clean */}
+                        <div className="absolute inset-0 bg-slate-900/5 pointer-events-none mix-blend-multiply"></div>
+                    </div>
 
-                    <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-10 duration-[1200ms]">
-                        Arrêtez de perdre du temps sur la mise en page. Laissez l'IA rédiger, designer et optimiser vos newsletters pour une conversion maximale.
-                    </p>
+                    {/* 3. BOTTOM: Subtitle & CTA */}
+                    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-[1400ms]">
+                        <p className="text-lg md:text-xl text-slate-500 mb-10 leading-relaxed">
+                            Arrêtez de perdre du temps sur la mise en page. Laissez l'IA rédiger, designer et optimiser vos newsletters pour une conversion maximale.
+                        </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-[1400ms]">
-                        <button onClick={() => navigate('/auth?mode=register')} className="w-full sm:w-auto px-8 py-4 bg-primary text-slate-950 rounded-2xl text-sm font-black uppercase tracking-wider hover:bg-yellow-400 transition-all hover:scale-105 shadow-xl shadow-primary/25 flex items-center justify-center gap-2">
-                            <Zap size={18} /> Essayer Gratuitement
+                        <button onClick={() => navigate('/auth?mode=register')} className="px-10 py-5 bg-primary text-slate-950 rounded-2xl text-base font-black uppercase tracking-wider hover:bg-yellow-400 transition-all hover:scale-105 shadow-xl shadow-primary/25 inline-flex items-center gap-2">
+                            <Zap size={20} /> Essayer Gratuitement
                         </button>
-                        <button className="w-full sm:w-auto px-8 py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-bold uppercase tracking-wider hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                            <Globe size={18} /> Voir la Démo
-                        </button>
                     </div>
 
-                    <div className="mt-20 relative max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-[1500ms]">
-                        <img src="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?q=80&w=2600&auto=format&fit=crop" className="w-full h-auto object-cover opacity-90" alt="Dashboard Preview" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-20"></div>
-                    </div>
                 </div>
             </header>
 
