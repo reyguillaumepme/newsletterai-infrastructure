@@ -48,7 +48,7 @@ const BrandDetail: React.FC = () => {
   // États globaux
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identity' | 'audience'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'audience' | 'subscription'>('identity');
 
   // États Identité & Stratégie
   const [isLoading, setIsLoading] = useState<{ strategy: boolean; framework: boolean }>({ strategy: false, framework: false });
@@ -56,6 +56,16 @@ const BrandDetail: React.FC = () => {
   const [brand, setBrand] = useState<Brand | null>(null);
   const [strategy, setStrategy] = useState<StructuredStrategy | null>(null);
   const [manualCTAs, setManualCTAs] = useState<StrategyCTA[]>([]);
+
+  // États Page d'Inscription
+  const [subscriptionSettings, setSubscriptionSettings] = useState({
+    title: "",
+    subtitle: "",
+    button_text: "",
+    primary_color: "#0F172A",
+    logo_visible: true
+  });
+  const [brandSlug, setBrandSlug] = useState("");
 
   // États Audience & Contacts
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -97,6 +107,19 @@ const BrandDetail: React.FC = () => {
             setManualCTAs([]);
           }
         }
+        if (data.subscription_settings) {
+          setSubscriptionSettings(data.subscription_settings);
+        } else {
+          // Default init
+          setSubscriptionSettings({
+            title: "Rejoignez ma newsletter",
+            subtitle: "Recevez mes meilleurs conseils chaque semaine.",
+            button_text: "S'inscrire",
+            primary_color: "#0F172A",
+            logo_visible: true
+          });
+        }
+        setBrandSlug(data.slug || "");
       }
       setIsPageLoading(false);
       setIsPageLoading(false);
@@ -150,16 +173,25 @@ const BrandDetail: React.FC = () => {
         newsletter_strategy: strategy ? JSON.stringify(strategy) : brand.newsletter_strategy,
         cta_config: JSON.stringify(manualCTAs),
         sender_name: brand.sender_name,
-        sender_email: brand.sender_email
+        sender_email: brand.sender_email,
+        slug: brandSlug,
+        subscription_settings: subscriptionSettings
       };
 
       const updatedBrand = await databaseService.updateBrand(id, payload);
       if (updatedBrand) {
         setBrand(updatedBrand);
+        setAlertState({ isOpen: true, message: "Sauvegarde réussie !", type: 'success' });
+      } else {
+        throw new Error("Echec sauvegarde (API Error)");
       }
     } catch (e) {
       console.error("Save failure:", e);
-      setAlertState({ isOpen: true, message: "Erreur de sauvegarde. Vérifiez votre infrastructure Supabase.", type: 'error' });
+      setAlertState({
+        isOpen: true,
+        message: "Erreur de sauvegarde. Avez-vous exécuté le script SQL de migration ?",
+        type: 'error'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -373,6 +405,12 @@ const BrandDetail: React.FC = () => {
           className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${activeTab === 'audience' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Users size={14} /> 👥 Audience & Diffusion
+        </button>
+        <button
+          onClick={() => setActiveTab('subscription')}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${activeTab === 'subscription' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <Zap size={14} /> 🚀 Page d'Inscription
         </button>
       </div>
 
@@ -711,7 +749,126 @@ const BrandDetail: React.FC = () => {
         </div>
       )}
 
-      {/* FOOTER SAVE BUTTON */}
+      {/* CONTENU ONGLET PAGE INSCRIPTION */}
+      {activeTab === 'subscription' && (
+        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-4 p-6 border-b border-gray-50">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><LinkIcon size={20} /></div>
+            <h3 className="text-lg font-bold uppercase tracking-tight">Configuration Page Publique</h3>
+          </div>
+
+          <div className="p-8 space-y-8">
+            {/* Aperçu Lien */}
+            <div className="bg-purple-50/50 p-6 rounded-3xl border border-purple-100 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black uppercase text-purple-400 tracking-widest">Lien public</span>
+                {brandSlug && (
+                  <a
+                    href={`/#/subscribe/${brandSlug}`}
+                    target="_blank"
+                    className="text-[10px] font-bold text-purple-600 hover:underline flex items-center gap-1"
+                  >
+                    Voir la page <Info size={12} />
+                  </a>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white px-4 py-3 rounded-xl border border-purple-100 text-sm font-mono text-purple-900 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {window.location.origin}/#/subscribe/{brandSlug || '...'}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/#/subscribe/${brandSlug}`);
+                    setAlertState({ isOpen: true, message: "Lien copié !", type: 'success' });
+                  }}
+                  className="p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
+                >
+                  <LinkIcon size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Colonne Gauche : Paramètres URL & Textes */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identifiant URL (Slug)</label>
+                  <input
+                    type="text"
+                    value={brandSlug}
+                    onChange={e => setBrandSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-purple-100 outline-none transition-all text-sm"
+                    placeholder="ma-super-newsletter"
+                  />
+                  <p className="text-[10px] text-gray-400 ml-1">Caractères alphanumériques et tirets uniquement.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Titre de la page</label>
+                  <input
+                    type="text"
+                    value={subscriptionSettings.title}
+                    onChange={e => setSubscriptionSettings({ ...subscriptionSettings, title: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-purple-100 outline-none transition-all text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sous-titre / Description</label>
+                  <textarea
+                    rows={3}
+                    value={subscriptionSettings.subtitle}
+                    onChange={e => setSubscriptionSettings({ ...subscriptionSettings, subtitle: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-purple-100 outline-none transition-all text-sm resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Colonne Droite : Apparence */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Texte du bouton</label>
+                  <input
+                    type="text"
+                    value={subscriptionSettings.button_text}
+                    onChange={e => setSubscriptionSettings({ ...subscriptionSettings, button_text: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-bold focus:ring-4 focus:ring-purple-100 outline-none transition-all text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Couleur Principale</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={subscriptionSettings.primary_color}
+                      onChange={e => setSubscriptionSettings({ ...subscriptionSettings, primary_color: e.target.value })}
+                      className="h-12 w-20 rounded-xl cursor-pointer border-none bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={subscriptionSettings.primary_color}
+                      onChange={e => setSubscriptionSettings({ ...subscriptionSettings, primary_color: e.target.value })}
+                      className="flex-1 bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 font-mono text-sm font-bold uppercase"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Afficher le Logo</label>
+                  <button
+                    onClick={() => setSubscriptionSettings({ ...subscriptionSettings, logo_visible: !subscriptionSettings.logo_visible })}
+                    className={`text-2xl transition-colors ${subscriptionSettings.logo_visible ? 'text-purple-600' : 'text-gray-300'}`}
+                  >
+                    {subscriptionSettings.logo_visible ? <ToggleRight /> : <ToggleLeft />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/80 backdrop-blur-xl px-10 py-5 rounded-[2.5rem] shadow-2xl border border-gray-100 z-50">
         <button onClick={handleSave} disabled={isSaving} className="bg-gray-950 text-white px-12 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center gap-3 transition-all hover:-translate-y-1 active:scale-95">
           {isSaving ? <Loader2 className="animate-spin" /> : <Save size={18} />} Sauvegarder

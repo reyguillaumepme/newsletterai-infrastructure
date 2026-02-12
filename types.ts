@@ -60,6 +60,14 @@ export interface Brand {
   footer_template?: string; // Template HTML du footer par défaut pour cette marque
   brevo_list_id?: number; // ID de la liste Brevo associée
   brevo_sender_id?: number; // ID du sender Brevo associé
+  slug?: string; // URL unique pour la page d'inscription
+  subscription_settings?: {
+    title: string;
+    subtitle: string;
+    button_text: string;
+    primary_color: string;
+    logo_visible: boolean;
+  }; // Configuration JSON de la page d'inscription
 }
 
 export interface Contact {

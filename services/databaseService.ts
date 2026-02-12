@@ -250,10 +250,44 @@ export const databaseService = {
     return Array.isArray(data) ? data[0] : null;
   },
 
+  async fetchBrandBySlug(slug: string): Promise<Brand | null> {
+    if (!isUsingCloud()) return storage.get('brands').find((b: any) => b.slug === slug) || null;
+    const { url, key } = getSupabaseConfig();
+    // Accès public : on utilise la clé API directement sans token utilisateur
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const headers = {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json'
+    };
+    const res = await fetch(`${baseUrl}/rest/v1/brands?slug=eq.${slug}&select=*`, { headers });
+    const data = await res.json();
+    return Array.isArray(data) ? data[0] : null;
+  },
+
   async createBrand(brand: Partial<Brand>): Promise<Brand> {
     const user = authService.getCurrentUser();
     if (!user) throw new Error("Non connecté");
     if (brand.logo_url?.startsWith('data:')) brand.logo_url = await this.uploadImage(brand.logo_url);
+
+    // Génération du slug par défaut si absent
+    if (!brand.slug && brand.brand_name) {
+      brand.slug = brand.brand_name.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    // Default subscription settings if not present
+    if (!brand.subscription_settings) {
+      brand.subscription_settings = {
+        title: "Rejoignez ma newsletter",
+        subtitle: "Recevez mes meilleurs contenus directement dans votre boîte mail.",
+        button_text: "S'inscrire",
+        primary_color: "#0F172A", // Slate-900 default
+        logo_visible: true
+      };
+    }
+
     if (!isUsingCloud()) {
       const newItem = { ...brand, id: storage.generateId(), user_id: user.id, created_at: new Date().toISOString() };
       storage.set('brands', [...storage.get('brands'), newItem]);
@@ -329,8 +363,12 @@ export const databaseService = {
       headers,
       body: JSON.stringify(fields)
     });
+    if (!res.ok) {
+      console.error("Update Brand Error:", await res.text());
+      return null;
+    }
     const data = await res.json();
-    return Array.isArray(data) ? data[0] : data;
+    return Array.isArray(data) ? data[0] : null;
   },
 
   // --- CONTACTS MANAGEMENT (NEW) ---

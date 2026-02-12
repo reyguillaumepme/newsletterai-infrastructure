@@ -90,29 +90,75 @@ const LandingPage: React.FC = () => {
                 </div>
             </header>
 
-            {/* Features Grid */}
-            <section className="py-24 bg-slate-50 relative">
-                <div className="max-w-7xl mx-auto px-6">
+            {/* Features Grid - Redesigned */}
+            <section className="py-24 bg-slate-50 relative overflow-hidden">
+                {/* Background Decor */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                    <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-yellow-400/5 blur-[100px]"></div>
+                    <div className="absolute bottom-[0%] left-[0%] w-[500px] h-[500px] rounded-full bg-purple-500/5 blur-[100px]"></div>
+                </div>
+
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="text-center max-w-3xl mx-auto mb-20">
-                        <h2 className="text-3xl font-black mb-6 uppercase tracking-tight">Pourquoi NwsletterIA ?</h2>
-                        <p className="text-slate-500 text-lg">Une suite complète d'outils conçus pour transformer votre simple email en une machine à engagement.</p>
+                        <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-slate-900">
+                            Pourquoi NwsLetter<span className="text-yellow-400">IA</span> ?
+                        </h2>
+                        <p className="text-slate-500 text-lg md:text-xl leading-relaxed">
+                            Une suite complète d'outils conçus pour transformer votre simple email en une machine à engagement.
+                        </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {[
-                            { icon: <Wand2 className="text-purple-600" />, title: "Rédaction Assistée par IA", desc: "Adopte automatiquement votre ton et style d'écriture pour un rendu 100% naturel." },
-                            { icon: <Layout className="text-blue-600" />, title: "Studio Visuel & Génération", desc: "Créez des images uniques et des mises en pages professionnelles en un clic." },
-                            { icon: <Clock className="text-green-600" />, title: "Gain de Temps Massif", desc: "Passez de 4h à 5min pour créer une newsletter complète et engageante." },
-                            { icon: <Shield className="text-red-500" />, title: "Sécurité & Délivrabilité", desc: "Infrastructure robuste garantissant que vos emails arrivent en boîte principale." },
-                            { icon: <MousePointerClick className="text-orange-500" />, title: "Analytics Avancés", desc: "Suivez les taux d'ouverture, clics et heatmap pour optimiser chaque envoi." },
-                            { icon: <Globe className="text-cyan-500" />, title: "Multi-Marques", desc: "Gérez plusieurs identités et stratégies de contenu depuis une interface unique." }
+                            {
+                                icon: <Wand2 size={32} className="text-white" />,
+                                title: "Rédaction Assistée par IA",
+                                desc: "Adopte automatiquement votre ton et style d'écriture pour un rendu 100% naturel.",
+                                gradient: "from-purple-500 to-indigo-500",
+                                span: "md:col-span-2"
+                            },
+                            {
+                                icon: <Layout size={32} className="text-white" />,
+                                title: "Studio Visuel",
+                                desc: "Créez des images uniques et des mises en pages professionnelles en un clic.",
+                                gradient: "from-blue-500 to-cyan-500",
+                                span: "md:col-span-1"
+                            },
+                            {
+                                icon: <Clock size={32} className="text-white" />,
+                                title: "Gain de Temps Massif",
+                                desc: "Passez de 4h à 5min pour créer une newsletter complète et engageante.",
+                                gradient: "from-emerald-500 to-teal-500",
+                                span: "md:col-span-1"
+                            },
+                            {
+                                icon: <Shield size={32} className="text-white" />,
+                                title: "Sécurité & Délivrabilité",
+                                desc: "Infrastructure robuste garantissant que vos emails arrivent en boîte principale. Zéro Spam.",
+                                gradient: "from-red-500 to-rose-500",
+                                span: "md:col-span-2"
+                            },
+                            {
+                                icon: <MousePointerClick size={32} className="text-white" />,
+                                title: "Analytics Avancés",
+                                desc: "Suivez les taux d'ouverture, clics et heatmap pour optimiser chaque envoi grâce à la data.",
+                                gradient: "from-orange-500 to-amber-500",
+                                span: "md:col-span-2"
+                            },
+                            {
+                                icon: <Globe size={32} className="text-white" />,
+                                title: "Multi-Marques",
+                                desc: "Gérez plusieurs identités depuis une seule interface.",
+                                gradient: "from-cyan-500 to-blue-500",
+                                span: "md:col-span-1"
+                            }
                         ].map((feature, idx) => (
-                            <div key={idx} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                                <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 text-xl">
+                            <div key={idx} className={`bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group ${feature.span}`}>
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg bg-gradient-to-br ${feature.gradient} group-hover:scale-110 transition-transform duration-300`}>
                                     {feature.icon}
                                 </div>
-                                <h3 className="font-bold text-lg mb-3">{feature.title}</h3>
-                                <p className="text-sm text-slate-500 leading-relaxed">{feature.desc}</p>
+                                <h3 className="font-bold text-xl mb-3 text-slate-900">{feature.title}</h3>
+                                <p className="text-base text-slate-500 leading-relaxed">{feature.desc}</p>
                             </div>
                         ))}
                     </div>

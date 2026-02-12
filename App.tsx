@@ -15,6 +15,7 @@ import Auth from './pages/Auth';
 import Unsubscribe from './pages/Unsubscribe';
 import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
+import SubscribePage from './pages/SubscribePage';
 import { authService, getSupabaseClient } from './services/authService';
 import { databaseService } from './services/databaseService';
 
@@ -110,6 +111,7 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
+        <Route path="/subscribe/:slug" element={<SubscribePage />} />
 
         {!user ? (
           <>
