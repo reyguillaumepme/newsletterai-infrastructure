@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Zap, Layout, Shield, Sparkles, Wand2, Globe, Clock, MousePointerClick } from 'lucide-react';
 
@@ -15,6 +15,15 @@ const LandingPage: React.FC = () => {
             }
         }
     }, [location]);
+
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+    const getPrice = (monthlyPrice: number) => {
+        if (billingCycle === 'yearly') {
+            return Math.round(monthlyPrice * 0.8);
+        }
+        return monthlyPrice;
+    };
 
     return (
         <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-primary selection:text-white overflow-x-hidden">
@@ -117,6 +126,21 @@ const LandingPage: React.FC = () => {
                         <p className="text-slate-500 text-lg">Commencez gratuitement, payez quand vous réussissez.</p>
                     </div>
 
+                    <div className="flex justify-center items-center gap-4 mb-4">
+                        <span className={`text-sm font-bold ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>Mensuel</span>
+                        <button
+                            onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
+                            className={`relative w-14 h-8 rounded-full p-1 transition-colors duration-300 focus:outline-none ${billingCycle === 'yearly' ? 'bg-primary' : 'bg-slate-200'}`}
+                        >
+                            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${billingCycle === 'yearly' ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                        </button>
+                        <span className={`text-sm font-bold flex items-center gap-2 ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-400'}`}>
+                            Annuel <span className="bg-primary text-slate-900 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md shadow-lg shadow-primary/40 ml-2 transform rotate-6">-20%</span>
+                        </span>
+                    </div>
+
+                    <p className="text-center text-sm font-medium text-slate-500 mb-12 animate-fade-in-up">✨ Économisez 20% sur votre abonnement à l'année !</p>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[90rem] mx-auto items-start">
 
                         {/* Free Plan */}
@@ -155,8 +179,13 @@ const LandingPage: React.FC = () => {
                             <div className="min-h-[190px] flex flex-col">
                                 <h3 className="text-lg font-black uppercase text-slate-400 mb-4">Pro</h3>
                                 <div className="mb-3 mt-6">
-                                    <span className="text-4xl font-black text-slate-900">9€</span>
-                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-black text-slate-900">{getPrice(9)}€</span>
+                                        <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    </div>
+                                    {billingCycle === 'yearly' && (
+                                        <div className="text-xs text-slate-400 font-medium mt-1">Facturé {getPrice(9) * 12}€ par an</div>
+                                    )}
                                 </div>
                                 <p className="text-slate-500 text-xs mb-3 min-h-[48px]">Pour les créateurs qui lancent leur activité.</p>
                             </div>
@@ -200,8 +229,13 @@ const LandingPage: React.FC = () => {
                                 </div>
 
                                 <div className="mb-3">
-                                    <span className="text-4xl font-black text-white">19€</span>
-                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-black text-white">{getPrice(19)}€</span>
+                                        <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    </div>
+                                    {billingCycle === 'yearly' && (
+                                        <div className="text-xs text-slate-400 font-medium mt-1">Facturé {getPrice(19) * 12}€ par an</div>
+                                    )}
                                 </div>
                                 <p className="text-slate-400 text-xs mb-3 min-h-[48px]">La puissance maximale pour les créateurs.</p>
                             </div>
@@ -234,8 +268,13 @@ const LandingPage: React.FC = () => {
                             <div className="min-h-[190px] flex flex-col">
                                 <h3 className="text-lg font-black uppercase text-slate-400 mb-4">Elite Business</h3>
                                 <div className="mb-3 mt-6">
-                                    <span className="text-4xl font-black text-slate-900">39€</span>
-                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-black text-slate-900">{getPrice(39)}€</span>
+                                        <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                    </div>
+                                    {billingCycle === 'yearly' && (
+                                        <div className="text-xs text-slate-400 font-medium mt-1">Facturé {getPrice(39) * 12}€ par an</div>
+                                    )}
                                 </div>
                                 <p className="text-slate-500 text-xs mb-3 min-h-[48px]">Pour les agences et entreprises.</p>
                             </div>
