@@ -117,97 +117,145 @@ const LandingPage: React.FC = () => {
                         <p className="text-slate-500 text-lg">Commencez gratuitement, payez quand vous réussissez.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[90rem] mx-auto items-start">
 
                         {/* Free Plan */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border-2 border-slate-100 relative group hover:border-slate-200 transition-all">
-                            <h3 className="text-xl font-black uppercase text-slate-400 mb-4">Découverte</h3>
-                            <div className="mb-8">
-                                <span className="text-5xl font-black text-slate-900">0€</span>
-                                <span className="text-slate-400 font-bold">/mois</span>
+                        <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 relative group hover:border-slate-200 transition-all h-full">
+                            <div className="min-h-[190px] flex flex-col">
+                                <h3 className="text-lg font-black uppercase text-slate-400 mb-4">Découverte</h3>
+                                <div className="mb-3 mt-6">
+                                    <span className="text-4xl font-black text-slate-900">0€</span>
+                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                </div>
+                                <p className="text-slate-500 text-xs mb-3 min-h-[48px]">Pour tester la puissance de l'IA et découvrir l'interface.</p>
                             </div>
-                            <p className="text-slate-500 text-sm mb-8 min-h-[40px]">Pour tester la puissance de l'IA et découvrir l'interface.</p>
 
                             <button
                                 onClick={() => navigate('/auth?mode=register')}
-                                className="w-full py-4 rounded-xl bg-slate-100 text-slate-900 font-bold mb-10 hover:bg-slate-200 transition-all"
+                                className="w-full py-3 rounded-xl bg-slate-100 text-slate-900 font-black uppercase tracking-wider mb-8 hover:bg-slate-200 transition-all text-sm"
                             >
                                 Créer un compte
                             </button>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span><strong>5 Crédits</strong> IA offerts</span>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>10 Crédits</strong> IA offerts</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Mode <strong>Test Uniquement</strong></span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span>Mode <strong>Test Uniquement</strong></span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Accès Studio Visuel</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span>Accès Studio Visuel</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Pro Plan */}
-                        <div className="bg-slate-900 p-10 rounded-[2.5rem] relative transform lg:-translate-y-4 shadow-2xl">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-primary to-orange-400 text-slate-900 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                Le plus populaire
+                        {/* NEW: Pro Plan */}
+                        <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 relative group hover:border-slate-200 transition-all h-full">
+                            <div className="min-h-[190px] flex flex-col">
+                                <h3 className="text-lg font-black uppercase text-slate-400 mb-4">Pro</h3>
+                                <div className="mb-3 mt-6">
+                                    <span className="text-4xl font-black text-slate-900">9€</span>
+                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                </div>
+                                <p className="text-slate-500 text-xs mb-3 min-h-[48px]">Pour les créateurs qui lancent leur activité.</p>
                             </div>
-                            <h3 className="text-xl font-black uppercase text-primary mb-4">Pro Creator</h3>
-                            <div className="mb-8">
-                                <span className="text-5xl font-black text-white">29€</span>
-                                <span className="text-slate-400 font-bold">/mois</span>
-                            </div>
-                            <p className="text-slate-400 text-sm mb-8 min-h-[40px]">Idéal pour les créateurs qui veulent économiser 10h/mois.</p>
 
                             <button
                                 onClick={() => navigate('/auth?mode=register')}
-                                className="w-full py-4 rounded-xl bg-primary text-slate-900 font-black uppercase tracking-wider mb-10 hover:scale-105 hover:bg-yellow-400 transition-all shadow-lg"
+                                className="w-full py-3 rounded-xl bg-slate-100 text-slate-900 font-black uppercase tracking-wider mb-8 hover:bg-slate-200 transition-all text-sm"
+                            >
+                                S'abonner
+                            </button>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>100 Crédits</strong> IA / mois</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>10 000</strong> emails/mois</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>2 Marques</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pro Creator Plan (Updated) */}
+                        <div className="bg-slate-900 p-8 rounded-[2rem] relative shadow-[0_0_40px_rgba(250,204,21,0.3)] border-2 border-primary/50 h-full transform scale-105 z-10">
+                            {/* Most Popular Tag - moved up via -top-6 */}
+                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-orange-400 text-slate-900 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg whitespace-nowrap z-20">
+                                Le plus populaire
+                            </div>
+
+                            <div className="min-h-[190px] flex flex-col">
+                                <h3 className="text-lg font-black uppercase text-primary mb-1 mt-2">Pro Creator</h3>
+
+                                {/* Gemini Branding */}
+                                <div className="flex items-center gap-1.5 mb-3">
+                                    <Sparkles size={14} className="text-purple-400" />
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                                        Dernier modèle Gemini PRO
+                                    </span>
+                                </div>
+
+                                <div className="mb-3">
+                                    <span className="text-4xl font-black text-white">19€</span>
+                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                </div>
+                                <p className="text-slate-400 text-xs mb-3 min-h-[48px]">La puissance maximale pour les créateurs.</p>
+                            </div>
+
+                            <button
+                                onClick={() => navigate('/auth?mode=register')}
+                                className="w-full py-3 rounded-xl bg-primary text-slate-900 font-black uppercase tracking-wider mb-8 hover:scale-105 hover:bg-yellow-400 transition-all shadow-lg text-sm"
                             >
                                 Commencer
                             </button>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-300">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span><strong>50 Crédits</strong> IA / mois</span>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>100 Crédits</strong> IA / mois</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-300">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Envois illimités</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>20 000</strong> emails/mois</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-300">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Marques illimitées</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>3 Marques</strong></span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-300">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Support Prioritaire</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span>Support Prioritaire</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Elite Plan */}
-                        <div className="bg-white p-10 rounded-[2.5rem] border-2 border-slate-100 relative group hover:border-slate-200 transition-all">
-                            <h3 className="text-xl font-black uppercase text-slate-400 mb-4">Elite Business</h3>
-                            <div className="mb-8">
-                                <span className="text-5xl font-black text-slate-900">99€</span>
-                                <span className="text-slate-400 font-bold">/mois</span>
+                        {/* Elite Business Plan */}
+                        <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 relative group hover:border-slate-200 transition-all h-full">
+                            <div className="min-h-[190px] flex flex-col">
+                                <h3 className="text-lg font-black uppercase text-slate-400 mb-4">Elite Business</h3>
+                                <div className="mb-3 mt-6">
+                                    <span className="text-4xl font-black text-slate-900">39€</span>
+                                    <span className="text-slate-400 font-bold text-sm">/mois</span>
+                                </div>
+                                <p className="text-slate-500 text-xs mb-3 min-h-[48px]">Pour les agences et entreprises.</p>
                             </div>
-                            <p className="text-slate-500 text-sm mb-8 min-h-[40px]">Pour les agences et entreprises nécessitant de la puissance.</p>
 
                             <button
                                 onClick={() => navigate('/auth?mode=register')}
-                                className="w-full py-4 rounded-xl bg-slate-100 text-slate-900 font-bold mb-10 hover:bg-slate-200 transition-all"
+                                className="w-full py-3 rounded-xl bg-slate-100 text-slate-900 font-black uppercase tracking-wider mb-8 hover:bg-slate-200 transition-all text-sm"
                             >
                                 Contacter l'équipe
                             </button>
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span><strong>Crédits Illimités</strong></span>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>500 Crédits</strong> IA</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>API Access</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span><strong>500 000</strong> emails/mois</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                    <CheckCircle2 size={18} className="text-primary" /> <span>Account Manager dédié</span>
+                                <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                    <CheckCircle2 size={16} className="text-primary shrink-0" /> <span>Account Manager dédié</span>
                                 </div>
                             </div>
                         </div>
