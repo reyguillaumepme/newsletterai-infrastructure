@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Zap, Layout, Shield, Sparkles, Wand2, Globe, Clock, MousePointerClick } from 'lucide-react';
+import TestimonialDeck from '../components/TestimonialDeck';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -303,9 +304,22 @@ const LandingPage: React.FC = () => {
                 </div>
             </section>
 
+            {/* Testimonials Section */}
+            <section className="py-24 bg-slate-50 border-t border-slate-200">
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="text-center max-w-3xl mx-auto mb-20">
+                        <h2 className="text-3xl font-black mb-6 uppercase tracking-tight">Ils l'ont adopté</h2>
+                        <p className="text-slate-500 text-lg">Rejoignez les créateurs qui ont transformé leur newsletter.</p>
+                    </div>
+
+                    <div className="mt-12">
+                        <TestimonialDeck />
+                    </div>
+                </div>
+            </section>
             {/* Footer CTA */}
             <section className="py-24 bg-slate-900 text-center px-6">
-                <h2 className="text-3xl lg:text-5xl font-black text-white mb-8 tracking-tight">Prêt à révolutionner vos newsletters ?</h2>
+                <h2 className="text-3xl lg:text-5xl font-black text-white mb-8 tracking-tight">Prêt à révolutionner vous aussi vos Newsletters ?</h2>
                 <button onClick={() => navigate('/auth?mode=register')} className="px-10 py-5 bg-primary text-slate-950 rounded-2xl text-base font-black uppercase tracking-wider hover:bg-yellow-400 transition-all hover:scale-105 shadow-xl shadow-primary/20 flex items-center gap-3 mx-auto">
                     C'est parti <ArrowRight size={20} />
                 </button>
