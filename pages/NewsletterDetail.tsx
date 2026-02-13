@@ -25,6 +25,7 @@ import {
   Eye,
   Clock,
   ChevronRight,
+  ChevronDown,
   Info,
   Smartphone,
   Monitor,
@@ -734,164 +735,39 @@ const NewsletterDetail: React.FC = () => {
     <>
 
       {!isNew && (
-        <div className="max-w-6xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
-          <div className="flex items-center justify-between">
+        <div className="max-w-6xl mx-auto space-y-10 pb-10 animate-in fade-in duration-500">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1">
               <button onClick={() => startTransition(() => navigate('/newsletters'))} className="p-2 hover:bg-gray-100 rounded-xl transition-all"><ArrowLeft size={20} /></button>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-4">
-                  {/* TITLE INPUT */}
-                  <input
-                    type="text"
-                    value={newsletter?.subject || ''}
-                    onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
-                    onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
-                    disabled={isSent}
-                    className={`text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2 ${isSent ? 'cursor-not-allowed text-gray-500' : ''}`}
-                  />
-
-                  {/* SCHEDULE ACTION - RESTORED */}
-                  <button
-                    onClick={() => {
-                      if (userProfile?.subscription_plan === 'free') {
-                        if (userProfile?.subscription_plan === 'free') {
-                          setUpgradeModalType('feature');
-                          setUpgradeModalFeature("La planification");
-                          setShowUpgradeModal(true);
-                        } else {
-                          setShowScheduleModal(true);
-                        }
-                        return;
-                      }
-                      startTransition(() => setShowScheduleModal(true))
-                    }}
-                    disabled={isSent}
-                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${isSent ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
-                      newsletter?.status === 'scheduled'
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    title={newsletter?.status === 'scheduled' ? 'Modifier la planification' : 'Planifier l\'envoi'}
-                  >
-                    <Calendar size={16} />
-                    {newsletter?.status === 'scheduled' && newsletter.scheduled_at
-                      ? new Date(newsletter.scheduled_at).toLocaleDateString()
-                      : 'Planifier'
-                    }
-                  </button>
-                </div>
-              </div>
-
-              {/* Brand Selector */}
-              {newsletter && (
-                <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-2xl border-2 border-gray-100">
-                  <Briefcase size={18} className="text-gray-400" />
-                  <div className="flex flex-col">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Marque
-                    </label>
-                    <select
-                      value={newsletter.brand_id}
-                      onChange={(e) => handleBrandChange(e.target.value)}
-                      disabled={newsletter.status === 'sent' || isSaving}
-                      className="bg-transparent border-none outline-none text-sm font-bold cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 pr-2"
-                    >
-                      {brands.map((brand) => (
-                        <option key={brand.id} value={brand.id}>
-                          {brand.brand_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {newsletter && (
-                <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase flex items-center gap-2 ${newsletter.status === 'sent' ? 'bg-green-100 text-green-700' :
-                  newsletter.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                  {newsletter.status === 'sent' ? <CheckCircle2 size={14} /> :
-                    newsletter.status === 'scheduled' ? <Clock size={14} /> :
-                      <FileText size={14} />}
-                  {newsletter.status === 'sent' ? 'Envoyée' :
-                    newsletter.status === 'scheduled' ? 'Planifiée' :
-                      'Brouillon'}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={() => startTransition(() => setShowPreviewModal(true))} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all shadow-gray-200"><Eye size={18} /> Aperçu Final</button>
-              <div className="relative group">
-                <button
-                  onClick={handleOpenPublishModal}
-                  disabled={newsletter?.status === 'sent'}
-                  className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase flex items-center gap-2 transition-all shadow-lg ${newsletter?.status === 'sent'
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : validationErrors.length > 0
-                      ? 'bg-orange-500 text-white hover:bg-orange-600'
-                      : 'bg-primary text-gray-950 hover:scale-105 shadow-primary/20'
-                    }`}
-                >
-                  <Rocket size={18} />
-                  {newsletter?.status === 'sent' ? 'Envoyée' : 'Publier'}
-                </button>
-                {validationErrors.length > 0 && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border-2 border-orange-200 rounded-2xl p-4 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                    <p className="text-xs font-bold text-orange-900 mb-2">⚠️ Validation requise :</p>
-                    <ul className="text-xs text-orange-700 space-y-1">
-                      {validationErrors.map((error, idx) => (
-                        <li key={idx}>• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <input
+                  type="text"
+                  value={newsletter?.subject || ''}
+                  onChange={e => setNewsletter(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                  onBlur={() => newsletter && handleSaveNewsletter({ subject: newsletter.subject })}
+                  disabled={isSent}
+                  className={`text-3xl font-bold tracking-tighter bg-transparent border-none outline-none w-full rounded-lg px-2 -ml-2 ${isSent ? 'cursor-not-allowed text-gray-500' : ''}`}
+                />
               </div>
             </div>
+
+            {/* STATUS BADGE - Restored to Header */}
+            {newsletter && (
+              <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase flex items-center gap-2 shrink-0 ${newsletter.status === 'sent' ? 'bg-green-100 text-green-700' :
+                newsletter.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                {newsletter.status === 'sent' ? <CheckCircle2 size={14} /> :
+                  newsletter.status === 'scheduled' ? <Clock size={14} /> :
+                    <FileText size={14} />}
+                {newsletter.status === 'sent' ? (
+                  stats?.sentDate ? `Envoyée le ${new Date(stats.sentDate).toLocaleDateString("fr-FR", { day: '2-digit', month: '2-digit' })}` : 'Envoyée'
+                ) :
+                  newsletter.status === 'scheduled' ? 'Planifiée' :
+                    'Brouillon'}
+              </div>
+            )}
           </div>
-
-          {/* ANALYTICS SECTION */}
-          {showStats && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
-                  <BarChart3 size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-800">Performance de la Campagne</h2>
-                  <p className="text-sm text-slate-500">Statistiques en temps réel depuis Brevo</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <AnalyticsCard
-                  label="Taux d'ouverture"
-                  value={stats ? `${((stats.uniqueViews / (stats.delivered || 1)) * 100).toFixed(1)}%` : '0%'}
-                  subtext={`${stats?.uniqueViews || 0} ouvertures uniques`}
-                  icon={Eye}
-                  color="text-emerald-600"
-                  isLoading={isLoadingStats}
-                />
-                <AnalyticsCard
-                  label="Taux de Clic (CTR)"
-                  value={stats ? `${((stats.uniqueClicks / (stats.delivered || 1)) * 100).toFixed(1)}%` : '0%'}
-                  subtext={`${stats?.uniqueClicks || 0} clics uniques`}
-                  icon={MousePointer2}
-                  color="text-blue-600"
-                  isLoading={isLoadingStats}
-                />
-                <AnalyticsCard
-                  label="Volume Envoyé"
-                  value={stats?.delivered || 0}
-                  subtext="Emails délivrés"
-                  icon={Mail}
-                  color="text-violet-600"
-                  isLoading={isLoadingStats}
-                />
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 space-y-10">
@@ -905,7 +781,7 @@ const NewsletterDetail: React.FC = () => {
                 </div>
                 <div className={`relative hook-editor flex-grow ${isSent ? 'bg-gray-50' : ''}`}>
                   {isSent ? (
-                    <div className="p-4 ql-editor" dangerouslySetInnerHTML={{ __html: hookValue }} />
+                    <div className="p-4 flex flex-col items-start justify-center [&_p]:!mb-1 [&_p]:!mt-0 [&_div]:!my-2 [&_div]:!min-h-0 [&_*]:!leading-snug text-left text-lg text-gray-600" dangerouslySetInnerHTML={{ __html: hookValue }} />
                   ) : (
                     <ReactQuill theme="snow" value={hookValue} onChange={setHookValue} onBlur={() => handleSaveNewsletter({ generated_content: hookValue })} modules={QUILL_MODULES} />
                   )}
@@ -995,7 +871,7 @@ const NewsletterDetail: React.FC = () => {
                 </div>
                 <div className={`relative footer-editor flex-grow ${isSent ? 'bg-gray-50' : ''}`}>
                   {isSent ? (
-                    <div className="p-4 ql-editor" dangerouslySetInnerHTML={{ __html: footerValue }} />
+                    <div className="p-4 flex flex-col items-center justify-center [&_p]:!mb-1 [&_p]:!mt-0 [&_div]:!my-2 [&_div]:!min-h-0 [&_*]:!leading-snug text-center text-sm text-gray-400" dangerouslySetInnerHTML={{ __html: footerValue }} />
                   ) : (
                     <ReactQuill
                       theme="snow"
@@ -1010,7 +886,110 @@ const NewsletterDetail: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm sticky top-8">
+              {/* ACTION ZONE */}
+              <div className="bg-white p-6 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden">
+
+
+                <h3 className="font-bold mb-6 flex items-center gap-3 text-lg"><Zap size={20} className="text-primary" /> ACTIONS</h3>
+
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {/* PREVIEW BUTTON */}
+                  <button
+                    onClick={() => startTransition(() => setShowPreviewModal(true))}
+                    className={`h-10 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all border ${isSent ? 'bg-primary text-gray-950 border-primary shadow-lg shadow-primary/20 hover:scale-105' : 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100 hover:border-gray-200'}`}
+                  >
+                    <Eye size={16} /> Aperçu
+                  </button>
+
+                  {/* SCHEDULE BUTTON */}
+                  <button
+                    onClick={() => {
+                      if (userProfile?.subscription_plan === 'free') {
+                        setUpgradeModalType('feature');
+                        setUpgradeModalFeature("La planification");
+                        setShowUpgradeModal(true);
+                        return;
+                      }
+                      startTransition(() => setShowScheduleModal(true))
+                    }}
+                    disabled={isSent}
+                    className={`h-10 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all border border-transparent ${isSent ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
+                      newsletter?.status === 'scheduled'
+                        ? 'bg-blue-50 text-blue-600 border-blue-100'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-200'
+                      }`}
+                    title="Planifier l'envoi"
+                  >
+                    <Calendar size={16} />
+                    {newsletter?.status === 'scheduled' && newsletter.scheduled_at
+                      ? new Date(newsletter.scheduled_at).toLocaleDateString()
+                      : 'Planifier'
+                    }
+                  </button>
+
+                  {/* SEND/PUBLISH BUTTON */}
+                  <div className="relative group col-span-2">
+                    <button
+                      onClick={handleOpenPublishModal}
+                      disabled={newsletter?.status === 'sent'}
+                      className={`w-full h-10 px-6 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2 transition-all shadow-lg ${newsletter?.status === 'sent'
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                        : validationErrors.length > 0
+                          ? 'bg-orange-500 text-white hover:bg-orange-600'
+                          : 'bg-primary text-gray-950 hover:scale-105 shadow-primary/20'
+                        }`}
+                    >
+                      <Rocket size={16} />
+                      Envoyer
+                    </button>
+                    {validationErrors.length > 0 && !isSent && (
+                      <div className="absolute right-0 bottom-full mb-2 w-64 bg-white border-2 border-orange-200 rounded-2xl p-4 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                        <p className="text-xs font-bold text-orange-900 mb-2">⚠️ Validation requise :</p>
+                        <ul className="text-xs text-orange-700 space-y-1">
+                          {validationErrors.map((error, idx) => (
+                            <li key={idx}>• {error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px bg-gray-50 mb-6" />
+
+                {/* BRAND SELECTOR */}
+                {newsletter && (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Changer de Marque
+                    </label>
+                    <div className="relative group">
+                      <div className={`h-10 px-4 bg-gray-50 border border-gray-100 text-gray-600 rounded-xl text-xs font-bold flex items-center justify-between transition-all overflow-hidden ${isSent ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 hover:border-gray-200'}`}>
+                        <div className="flex items-center gap-2">
+                          <Briefcase size={16} />
+                          <span className="truncate max-w-[150px]">{brands.find(b => b.id === newsletter.brand_id)?.brand_name || 'Sélectionner'}</span>
+                        </div>
+                        <ChevronDown size={14} className="text-gray-400" />
+                        <select
+                          value={newsletter.brand_id}
+                          onChange={(e) => handleBrandChange(e.target.value)}
+                          disabled={newsletter.status === 'sent' || isSaving}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer disabled:cursor-not-allowed"
+                          title="Changer de Marque"
+                        >
+                          {brands.map((brand) => (
+                            <option key={brand.id} value={brand.id}>
+                              {brand.brand_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm">
                 <h3 className="font-bold mb-6 flex items-center gap-3 text-lg"><FileText size={20} className="text-primary" /> SOMMAIRE</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-50"><Quote size={12} className="text-primary" /><span className="text-[11px] font-bold text-gray-400">Accroche</span></div>
