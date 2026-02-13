@@ -30,7 +30,10 @@ import {
   MoreHorizontal,
   UserPlus,
   Download,
-  Filter
+  Filter,
+  BarChart3,
+  Eye,
+  MousePointer2
 } from 'lucide-react';
 import { generateNewsletterStrategy, generateWritingFramework } from '../services/geminiService';
 import { databaseService } from '../services/databaseService';
@@ -39,6 +42,7 @@ import { mailService } from '../services/mailService';
 import { Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
 import UpgradeModal from '../components/UpgradeModal';
 import AlertModal from '../components/AlertModal';
+import AnalyticsCard from '../components/AnalyticsCard';
 
 const BrandDetail: React.FC = () => {
   const { id } = useParams();
@@ -77,10 +81,31 @@ const BrandDetail: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null); // New Profile State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false); // Upgrade Modal State
 
-  // Alert Modal State
   const [alertState, setAlertState] = useState<{ isOpen: boolean, message: string, type: 'info' | 'error' | 'success' }>({
     isOpen: false, message: '', type: 'info'
   });
+
+  // États Statistiques
+  const [brandStats, setBrandStats] = useState<{ campaignsCount: number, totalSent: number, globalOpenRate: number, globalClickRate: number } | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Charger les stats quand la marque est chargée
+  useEffect(() => {
+    if (brand?.id && activeTab === 'audience') {
+      const loadStats = async () => {
+        setIsLoadingStats(true);
+        try {
+          const stats = await mailService.getBrandStats(brand.id);
+          setBrandStats(stats);
+        } catch (e) {
+          console.error("Failed to load brand stats", e);
+        } finally {
+          setIsLoadingStats(false);
+        }
+      };
+      loadStats();
+    }
+  }, [brand?.id, activeTab]);
 
   const currentUser = authService.getCurrentUser();
   const isDemo = false;
@@ -616,6 +641,46 @@ const BrandDetail: React.FC = () => {
       {/* CONTENU ONGLET AUDIENCE */}
       {activeTab === 'audience' && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+          {/* PERFORMANCE GLOBALE */}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-4 p-6 border-b border-gray-50">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><BarChart3 size={20} /></div>
+              <div>
+                <h3 className="text-lg font-bold uppercase tracking-tight">Performance Globale</h3>
+                <p className="text-xs text-gray-400 font-medium">Moyenne calculée sur {brandStats?.campaignsCount || 0} campagnes envoyées</p>
+              </div>
+            </div>
+
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <AnalyticsCard
+                  label="Taux d'ouverture Moyen"
+                  value={brandStats ? `${brandStats.globalOpenRate}%` : '-'}
+                  subtext="Moyenne globale"
+                  icon={Eye}
+                  color="text-emerald-600"
+                  isLoading={isLoadingStats}
+                />
+                <AnalyticsCard
+                  label="Taux de Clic Moyen (CTR)"
+                  value={brandStats ? `${brandStats.globalClickRate}%` : '-'}
+                  subtext="Moyenne globale"
+                  icon={MousePointer2}
+                  color="text-blue-600"
+                  isLoading={isLoadingStats}
+                />
+                <AnalyticsCard
+                  label="Volume Total Envoyé"
+                  value={brandStats?.totalSent || 0}
+                  subtext="Emails délivrés au total"
+                  icon={Mail}
+                  color="text-violet-600"
+                  isLoading={isLoadingStats}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* SECTION EXPÉDITEUR BREVO */}
           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">

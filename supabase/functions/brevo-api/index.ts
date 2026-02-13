@@ -10,16 +10,16 @@ const SCOPES = {
 
 const BREVO_API_URL = "https://api.brevo.com/v3";
 
+const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 serve(async (req) => {
     // CORS Handling
     if (req.method === "OPTIONS") {
-        return new Response("ok", {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
-                "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-            },
-        });
+        return new Response("ok", { headers: corsHeaders });
     }
 
     try {
@@ -77,6 +77,12 @@ serve(async (req) => {
                 url = `${BREVO_API_URL}/smtp/email`;
                 fetchBody = body; // Pass sender, to, subject, htmlContent directly
                 break;
+            case "getCampaignStats":
+                // Endpoint: /emailCampaigns/{campaignId}
+                if (!body.campaignId) throw new Error("campaignId required");
+                url = `${BREVO_API_URL}/emailCampaigns/${body.campaignId}`;
+                fetchMethod = "GET";
+                break;
             default:
                 // Fallback for generic proxy (restricted)
                 throw new Error("Action non supportée ou invalide.");
@@ -112,6 +118,7 @@ serve(async (req) => {
         });
 
     } catch (error: any) {
+        console.error("Error in brevo-api:", error.message);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 400,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },

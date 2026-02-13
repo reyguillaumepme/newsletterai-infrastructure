@@ -296,5 +296,106 @@ export const mailService = {
 
     if (error) console.warn("Erreur whitelist Brevo:", error);
     return !error;
+  },
+
+  async getCampaignStats(campaignId: number) {
+    const { getSupabaseClient } = await import('./authService');
+    const supabase = getSupabaseClient();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase.functions.invoke('brevo-api', {
+      body: {
+        action: 'getCampaignStats',
+        body: { campaignId }
+      }
+    });
+
+    if (error) {
+      console.warn("Error fetching stats (Edge Function):", error);
+      return null;
+    }
+    if (data.error) {
+      console.warn("Error fetching stats (API):", data.error);
+      return null;
+    }
+
+    if (data.statistics) {
+      const stats = data.statistics.globalStats;
+
+      // Check if globalStats is empty/zero (common with Brevo API for some campaign types) and if detailed campaignStats exist
+      if (stats && stats.delivered === 0 && data.statistics.campaignStats && Array.isArray(data.statistics.campaignStats)) {
+        // Aggregate campaignStats
+        return data.statistics.campaignStats.reduce((acc: any, curr: any) => ({
+          uniqueViews: (acc.uniqueViews || 0) + (curr.uniqueViews || 0),
+          uniqueClicks: (acc.uniqueClicks || 0) + (curr.uniqueClicks || 0),
+          delivered: (acc.delivered || 0) + (curr.delivered || 0),
+          sent: (acc.sent || 0) + (curr.sent || 0),
+          complaints: (acc.complaints || 0) + (curr.complaints || 0),
+          hardBounces: (acc.hardBounces || 0) + (curr.hardBounces || 0),
+          softBounces: (acc.softBounces || 0) + (curr.softBounces || 0),
+          unsubscriptions: (acc.unsubscriptions || 0) + (curr.unsubscriptions || 0),
+        }), { uniqueViews: 0, uniqueClicks: 0, delivered: 0, sent: 0, complaints: 0, hardBounces: 0, softBounces: 0, unsubscriptions: 0 });
+      }
+
+      return stats;
+    }
+
+    console.warn("Unexpected Brevo API response structure:", data);
+    return null;
+  },
+
+  async getBrandStats(brandId: string) {
+    try {
+      const newsletters = await databaseService.fetchNewsletters();
+      const brandNewsletters = newsletters.filter(
+        n => n.brand_id === brandId && n.status === 'sent' && n.brevo_campaign_id
+      );
+
+      if (brandNewsletters.length === 0) {
+        return { campaignsCount: 0, totalSent: 0, globalOpenRate: 0, globalClickRate: 0 };
+      }
+
+      // Parallel fetch for all campaigns
+      const statsPromises = brandNewsletters.map(n =>
+        this.getCampaignStats(n.brevo_campaign_id!).catch(() => null)
+      );
+
+      const results = await Promise.all(statsPromises);
+      const validStats = results.filter(s => s !== null);
+
+      let totalSent = 0;
+      let totalOpens = 0;
+      let totalClicks = 0;
+
+      validStats.forEach(stat => {
+        // Brevo stats structure: { delivered, uniqueViews, uniqueClicks, ... }
+        // "sent" in Brevo usually means attempted, "delivered" is better for rates? 
+        // Let's use 'delivered' for rates calculation to be fair, or 'uniqueViews' / 'delivered'.
+        // Standard is Open Rate = Unique Opens / Delivered.
+        // CTR = Unique Clicks / Delivered.
+
+        const sentCount = stat.delivered || 0;
+        const openCount = stat.uniqueViews || 0;
+        const clickCount = stat.uniqueClicks || 0;
+
+        totalSent += sentCount;
+        totalOpens += openCount;
+        totalClicks += clickCount;
+      });
+
+      const globalOpenRate = totalSent > 0 ? (totalOpens / totalSent) * 100 : 0;
+      const globalClickRate = totalSent > 0 ? (totalClicks / totalSent) * 100 : 0;
+
+      return {
+        campaignsCount: validStats.length,
+        totalSent,
+        globalOpenRate: parseFloat(globalOpenRate.toFixed(2)),
+        globalClickRate: parseFloat(globalClickRate.toFixed(2))
+      };
+
+    } catch (e) {
+      console.error("Error calculating brand stats:", e);
+      return { campaignsCount: 0, totalSent: 0, globalOpenRate: 0, globalClickRate: 0 };
+    }
   }
 };

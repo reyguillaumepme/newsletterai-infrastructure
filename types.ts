@@ -93,6 +93,7 @@ export interface Newsletter {
   generated_content?: string;
   footer_content?: string;
   show_footer_logo?: boolean;
+  brevo_campaign_id?: number;
   brands?: { brand_name: string; logo_url?: string }; // Embedded brand data from join
 }
 

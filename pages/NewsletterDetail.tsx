@@ -40,8 +40,12 @@ import {
   Users,
   CalendarClock,
   Rocket,
-  UserX
+  UserX,
+  BarChart3,
+  MousePointer2,
+  Mail
 } from 'lucide-react';
+import AnalyticsCard from '../components/AnalyticsCard';
 import { databaseService } from '../services/databaseService';
 import { mailService } from '../services/mailService';
 import { authService } from '../services/authService';
@@ -70,9 +74,13 @@ const NewsletterDetail: React.FC = () => {
 
   const [newsletter, setNewsletter] = useState<Newsletter | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null); // New State for Profile
+  const [stats, setStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   // New variable to check if newsletter is sent
   const isSent = newsletter?.status === 'sent';
+  // Also consider scheduled as a locked state for editing, but for stats we strictly mean SENT
+  const showStats = isSent && newsletter?.brevo_campaign_id;
   const [brand, setBrand] = useState<Brand | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
@@ -225,6 +233,23 @@ const NewsletterDetail: React.FC = () => {
       loadAvailableIdeas();
     }
   }, [showIdeaPicker, newsletter?.brand_id, ideas]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (newsletter?.status === 'sent' && newsletter.brevo_campaign_id) {
+        setIsLoadingStats(true);
+        try {
+          const data = await mailService.getCampaignStats(newsletter.brevo_campaign_id);
+          setStats(data);
+        } catch (e) {
+          console.error("Failed to load stats", e);
+        } finally {
+          setIsLoadingStats(false);
+        }
+      }
+    };
+    fetchStats();
+  }, [newsletter?.status, newsletter?.brevo_campaign_id]);
 
   const handleCancelCreation = () => {
     setShowCreationModal(false);
@@ -586,12 +611,13 @@ const NewsletterDetail: React.FC = () => {
         scheduledAt: (newsletter.status === 'scheduled' && !forceImmediate) ? newsletter.scheduled_at : undefined
       });
 
-      // Update newsletter status
+      // Update newsletter status AND campaign ID
       await databaseService.updateNewsletter(newsletter.id, {
-        status: 'sent'
+        status: 'sent',
+        brevo_campaign_id: result.campaignId
       });
 
-      setNewsletter(prev => prev ? { ...prev, status: 'sent' } : null);
+      setNewsletter(prev => prev ? { ...prev, status: 'sent', brevo_campaign_id: result.campaignId } : null);
       setPublishReport({ success: result.success.length, failed: result.failed.length });
       setPublishSuccess(true);
 
@@ -794,6 +820,7 @@ const NewsletterDetail: React.FC = () => {
                 </div>
               )}
             </div>
+
             <div className="flex gap-3">
               <button onClick={() => startTransition(() => setShowPreviewModal(true))} className="px-5 py-2.5 bg-gray-950 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition-all shadow-gray-200"><Eye size={18} /> Aperçu Final</button>
               <div className="relative group">
@@ -823,6 +850,48 @@ const NewsletterDetail: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* ANALYTICS SECTION */}
+          {showStats && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
+                  <BarChart3 size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Performance de la Campagne</h2>
+                  <p className="text-sm text-slate-500">Statistiques en temps réel depuis Brevo</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <AnalyticsCard
+                  label="Taux d'ouverture"
+                  value={stats ? `${((stats.uniqueViews / (stats.delivered || 1)) * 100).toFixed(1)}%` : '0%'}
+                  subtext={`${stats?.uniqueViews || 0} ouvertures uniques`}
+                  icon={Eye}
+                  color="text-emerald-600"
+                  isLoading={isLoadingStats}
+                />
+                <AnalyticsCard
+                  label="Taux de Clic (CTR)"
+                  value={stats ? `${((stats.uniqueClicks / (stats.delivered || 1)) * 100).toFixed(1)}%` : '0%'}
+                  subtext={`${stats?.uniqueClicks || 0} clics uniques`}
+                  icon={MousePointer2}
+                  color="text-blue-600"
+                  isLoading={isLoadingStats}
+                />
+                <AnalyticsCard
+                  label="Volume Envoyé"
+                  value={stats?.delivered || 0}
+                  subtext="Emails délivrés"
+                  icon={Mail}
+                  color="text-violet-600"
+                  isLoading={isLoadingStats}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2 space-y-10">
@@ -953,417 +1022,433 @@ const NewsletterDetail: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div >
       )}
 
 
-      {showPreviewModal && (
-        <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-2xl z-[500] flex items-center justify-center p-4 overflow-hidden">
-          <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
-            <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
-              <div className="flex items-center gap-8">
-                <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
-                <div className="flex bg-gray-100 p-1 rounded-xl">
-                  <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Monitor size={14} /> Desktop</button>
-                  <button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Smartphone size={14} /> Mobile</button>
+      {
+        showPreviewModal && (
+          <div className="fixed inset-0 bg-gray-950/95 backdrop-blur-2xl z-[500] flex items-center justify-center p-4 overflow-hidden">
+            <div className="bg-white w-full max-w-[1400px] h-[95vh] rounded-[3.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-500">
+              <div className="px-8 py-5 border-b border-gray-50 flex items-center justify-between bg-white z-10 sticky top-0">
+                <div className="flex items-center gap-8">
+                  <h3 className="font-black text-xl uppercase tracking-tighter">Aperçu Rapide</h3>
+                  <div className="flex bg-gray-100 p-1 rounded-xl">
+                    <button onClick={() => setPreviewDevice('desktop')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Monitor size={14} /> Desktop</button>
+                    <button onClick={() => setPreviewDevice('mobile')} className={`px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase transition-all ${previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-950' : 'text-gray-400'}`}><Smartphone size={14} /> Mobile</button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setShowPreviewModal(false);
+                      setShowSendTestModal(true);
+                    }}
+                    className="px-6 py-3 bg-primary text-gray-950 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                  >
+                    <SendHorizontal size={16} /> Envoyer un test
+                  </button>
+                  <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200 transition-all"><X size={24} /></button>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setShowPreviewModal(false);
-                    setShowSendTestModal(true);
-                  }}
-                  className="px-6 py-3 bg-primary text-gray-950 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:scale-105 transition-all shadow-lg shadow-primary/20"
-                >
-                  <SendHorizontal size={16} /> Envoyer un test
-                </button>
-                <button onClick={() => startTransition(() => setShowPreviewModal(false))} className="p-3 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200 transition-all"><X size={24} /></button>
-              </div>
-            </div>
-            <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
-              <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
-                <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
+              <div className="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-hidden">
+                <div className={`bg-white shadow-2xl transition-all duration-300 overflow-hidden flex-1 ${previewDevice === 'mobile' ? 'w-[375px] rounded-[2.5rem] border-[8px] border-gray-900 my-auto max-h-[700px]' : 'w-full max-w-[900px] h-full rounded-t-2xl border border-gray-200'}`}>
+                  <iframe srcDoc={renderNewsletterHtml()} className="w-full h-full border-none bg-white" title="Preview" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {showIdeaPicker && (
-        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
-            <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
-              <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
-            </div>
-            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-3">
-              {isLoadingPicker ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-primary" size={48} /></div> : availableIdeas.length > 0 ? availableIdeas.map(idea => (
-                <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
-                  <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
-                    {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
-                  </div>
-                  <Plus size={20} className="text-gray-200" />
-                </div>
-              )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedIdea && (
-        <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
-            <div className="relative h-64 shrink-0">
-              {selectedIdea.image_url ? <img src={selectedIdea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><ImageIcon size={64} /></div>}
-              <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
-          </div>
-        </div>
-      )}
-
-      {showPublishModal && (
-        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
-            {/* Header */}
-            <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-primary/5 to-transparent">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                  <Rocket size={28} className="text-primary" />
-                  Publier la Newsletter
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowPublishModal(false);
-                    setSearchQuery('');
-                    setDisplayedContactsCount(10);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
-                >
-                  <X size={24} />
-                </button>
+      {
+        showIdeaPicker && (
+          <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-4xl max-h-[85vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+              <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Votre Bibliothèque</h3>
+                <button onClick={() => startTransition(() => setShowIdeaPicker(false))} className="p-4 hover:bg-white rounded-3xl transition-all text-gray-300"><X size={28} /></button>
               </div>
-              {/* Audience Summary (No Selection needed) */}
-              <div className="flex-1 p-8 flex flex-col items-center justify-center space-y-6">
-                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                  <Users size={48} className="text-primary" />
-                </div>
-
-                <div className="text-center space-y-2">
-                  <h4 className="text-xl font-bold text-gray-900">
-                    Diffusion à l'audience de la marque
-                  </h4>
-                  <p className="text-gray-500 max-w-sm mx-auto">
-                    Cette newsletter sera envoyée à l'ensemble des abonnés de la liste <span className="font-bold text-gray-700">{brand?.brand_name}</span>.
-                  </p>
-                </div>
-
-                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex items-center gap-4 min-w-[300px]">
-                  <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                    <Users size={24} className="text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Abonnés Actifs</p>
-                    <p className="text-2xl font-black text-gray-900">
-                      {contacts.filter(c => c.status === 'subscribed').length} contact{contacts.filter(c => c.status === 'subscribed').length > 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-center text-gray-400 max-w-xs">
-                  La liste des contacts est gérée automatiquement via l'espace "Audience" de la marque.
-                </p>
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 border-t border-gray-50 bg-gray-50/50">
-                {publishSuccess ? (
-                  <div className="p-4 bg-green-50 border-2 border-green-100 rounded-2xl flex items-center gap-3 mb-4">
-                    <CheckCircle2 className="text-green-500" size={24} />
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-green-900">Newsletter publiée avec succès !</p>
-                      <p className="text-xs text-green-700">
-                        {publishReport?.success || 0} envoyé{(publishReport?.success || 0) > 1 ? 's' : ''}, {publishReport?.failed || 0} échec{(publishReport?.failed || 0) > 1 ? 's' : ''}
-                      </p>
+              <div className="p-8 overflow-y-auto custom-scrollbar flex-1 space-y-3">
+                {isLoadingPicker ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-primary" size={48} /></div> : availableIdeas.length > 0 ? availableIdeas.map(idea => (
+                  <div key={idea.id} onClick={() => handleAddIdeaToNewsletter(idea)} className="p-4 border border-gray-100 rounded-3xl hover:border-primary hover:bg-primary/5 transition-all flex items-center gap-6 cursor-pointer">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl overflow-hidden shrink-0">
+                      {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={20} /></div>}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-lg text-gray-800 truncate">{idea.title}</h4>
+                    </div>
+                    <Plus size={20} className="text-gray-200" />
                   </div>
-                ) : null}
+                )) : <div className="text-center py-20 text-gray-400 font-bold italic">Aucun bloc disponible.</div>}
+              </div>
+            </div>
+          </div>
+        )
+      }
 
-                <div className="flex gap-3">
+      {
+        selectedIdea && (
+          <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
+              <div className="relative h-64 shrink-0">
+                {selectedIdea.image_url ? <img src={selectedIdea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><ImageIcon size={64} /></div>}
+                <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showPublishModal && (
+          <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+              {/* Header */}
+              <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-primary/5 to-transparent">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+                    <Rocket size={28} className="text-primary" />
+                    Publier la Newsletter
+                  </h3>
                   <button
                     onClick={() => {
                       setShowPublishModal(false);
                       setSearchQuery('');
                       setDisplayedContactsCount(10);
                     }}
-                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
-                    disabled={isPublishing}
+                    className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400"
                   >
-                    Annuler
+                    <X size={24} />
                   </button>
-                  <div className="flex-1 group relative">
-                    <button
-                      onClick={() => handlePublish(true)}
-                      disabled={isPublishing || publishSuccess || newsletter?.status === 'scheduled'}
-                      className="w-full px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      {isPublishing ? (
-                        <>
-                          <Loader2 className="animate-spin" size={18} />
-                          Envoi en cours...
-                        </>
-                      ) : newsletter?.status === 'scheduled' ? (
-                        <>
-                          <CalendarClock size={18} />
-                          Déjà Planifiée
-                        </>
-                      ) : (
-                        <>
-                          <SendHorizontal size={18} />
-                          Envoyer Maintenant
-                        </>
-                      )}
-                    </button>
-                    {newsletter?.status === 'scheduled' && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-black/80 text-white text-xs rounded-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-center pointer-events-none">
-                        Cette newsletter est programmée. Annulez la planification pour l'envoyer maintenant.
+                </div>
+                {/* Audience Summary (No Selection needed) */}
+                <div className="flex-1 p-8 flex flex-col items-center justify-center space-y-6">
+                  <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+                    <Users size={48} className="text-primary" />
+                  </div>
+
+                  <div className="text-center space-y-2">
+                    <h4 className="text-xl font-bold text-gray-900">
+                      Diffusion à l'audience de la marque
+                    </h4>
+                    <p className="text-gray-500 max-w-sm mx-auto">
+                      Cette newsletter sera envoyée à l'ensemble des abonnés de la liste <span className="font-bold text-gray-700">{brand?.brand_name}</span>.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex items-center gap-4 min-w-[300px]">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                      <Users size={24} className="text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Abonnés Actifs</p>
+                      <p className="text-2xl font-black text-gray-900">
+                        {contacts.filter(c => c.status === 'subscribed').length} contact{contacts.filter(c => c.status === 'subscribed').length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-center text-gray-400 max-w-xs">
+                    La liste des contacts est gérée automatiquement via l'espace "Audience" de la marque.
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="p-6 border-t border-gray-50 bg-gray-50/50">
+                  {publishSuccess ? (
+                    <div className="p-4 bg-green-50 border-2 border-green-100 rounded-2xl flex items-center gap-3 mb-4">
+                      <CheckCircle2 className="text-green-500" size={24} />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-green-900">Newsletter publiée avec succès !</p>
+                        <p className="text-xs text-green-700">
+                          {publishReport?.success || 0} envoyé{(publishReport?.success || 0) > 1 ? 's' : ''}, {publishReport?.failed || 0} échec{(publishReport?.failed || 0) > 1 ? 's' : ''}
+                        </p>
                       </div>
-                    )}
+                    </div>
+                  ) : null}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowPublishModal(false);
+                        setSearchQuery('');
+                        setDisplayedContactsCount(10);
+                      }}
+                      className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                      disabled={isPublishing}
+                    >
+                      Annuler
+                    </button>
+                    <div className="flex-1 group relative">
+                      <button
+                        onClick={() => handlePublish(true)}
+                        disabled={isPublishing || publishSuccess || newsletter?.status === 'scheduled'}
+                        className="w-full px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      >
+                        {isPublishing ? (
+                          <>
+                            <Loader2 className="animate-spin" size={18} />
+                            Envoi en cours...
+                          </>
+                        ) : newsletter?.status === 'scheduled' ? (
+                          <>
+                            <CalendarClock size={18} />
+                            Déjà Planifiée
+                          </>
+                        ) : (
+                          <>
+                            <SendHorizontal size={18} />
+                            Envoyer Maintenant
+                          </>
+                        )}
+                      </button>
+                      {newsletter?.status === 'scheduled' && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-black/80 text-white text-xs rounded-xl backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-center pointer-events-none">
+                          Cette newsletter est programmée. Annulez la planification pour l'envoyer maintenant.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
 
       {/* Brand Selection Modal for New Newsletter */}
-      {showCreationModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
-            <h2 className="text-2xl font-bold mb-6">Créer une Newsletter</h2>
+      {
+        showCreationModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
+              <h2 className="text-2xl font-bold mb-6">Créer une Newsletter</h2>
 
-            <form onSubmit={handleStartCreation} className="space-y-6">
-              {/* Brand Selection */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Marque *
-                </label>
-                <select
-                  value={newNlData.brand_id}
-                  onChange={(e) => setNewNlData({ ...newNlData, brand_id: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
-                  required
-                >
-                  <option value="">Sélectionnez une marque</option>
-                  {brands.map((brand) => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.brand_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subject Input */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Sujet de la newsletter *
-                </label>
-                <input
-                  type="text"
-                  value={newNlData.subject}
-                  onChange={(e) => setNewNlData({ ...newNlData, subject: e.target.value })}
-                  placeholder="Ex: Newsletter de janvier 2026"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
-                  required
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancelCreation}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
-                  disabled={isSaving}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving || !newNlData.brand_id || !newNlData.subject}
-                  className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="animate-spin" size={18} />
-                      Création...
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={18} />
-                      Créer
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Send Test Email Modal */}
-      {showScheduleModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl scale-100 animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black uppercase tracking-tight">Planifier l'envoi</h3>
-              <button onClick={() => setShowScheduleModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-all">
-                <X size={20} className="text-gray-400" />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Date d'envoi
-                </label>
-                <input
-                  type="date"
-                  value={scheduleData.date}
-                  onChange={(e) => setScheduleData({ ...scheduleData, date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
-                  Heure d'envoi
-                </label>
-                <input
-                  type="time"
-                  value={scheduleData.time}
-                  onChange={(e) => setScheduleData({ ...scheduleData, time: e.target.value })}
-                  className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                {newsletter?.status === 'scheduled' && (
-                  <button
-                    onClick={() => {
-                      handleSaveNewsletter({ status: 'draft', scheduled_at: undefined });
-                      setShowScheduleModal(false);
-                    }}
-                    className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl font-bold text-sm hover:bg-red-100 transition-colors"
-                  >
-                    Annuler la planification
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    if (scheduleData.date && scheduleData.time) {
-                      const scheduledAt = new Date(`${scheduleData.date}T${scheduleData.time}`).toISOString();
-                      handleSaveNewsletter({ status: 'scheduled', scheduled_at: scheduledAt });
-                      setShowScheduleModal(false);
-                    }
-                  }}
-                  disabled={!scheduleData.date || !scheduleData.time}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
-                >
-                  Confirmer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Send Test Email Modal */}
-      {showSendTestModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
-            <h2 className="text-2xl font-bold mb-2">Envoyer un Test</h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Recevez un aperçu de votre newsletter par email
-            </p>
-
-            {testEmailSent ? (
-              <div className="flex flex-col items-center gap-4 py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="text-green-600" size={32} />
-                </div>
-                <p className="text-lg font-bold text-green-600">Test envoyé !</p>
-                <p className="text-sm text-gray-500">Vérifiez votre boîte de réception</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSendTestEmail} className="space-y-6">
+              <form onSubmit={handleStartCreation} className="space-y-6">
+                {/* Brand Selection */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Adresse email *
+                    Marque *
                   </label>
-                  <input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="votre@email.com"
+                  <select
+                    value={newNlData.brand_id}
+                    onChange={(e) => setNewNlData({ ...newNlData, brand_id: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
                     required
-                    autoFocus
+                  >
+                    <option value="">Sélectionnez une marque</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.brand_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subject Input */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Sujet de la newsletter *
+                  </label>
+                  <input
+                    type="text"
+                    value={newNlData.subject}
+                    onChange={(e) => setNewNlData({ ...newNlData, subject: e.target.value })}
+                    placeholder="Ex: Newsletter de janvier 2026"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
+                    required
                   />
                 </div>
 
+                {/* Action Buttons */}
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowSendTestModal(false);
-                      setTestEmail('');
-                    }}
+                    onClick={handleCancelCreation}
                     className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
-                    disabled={isSendingTest}
+                    disabled={isSaving}
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    disabled={isSendingTest || !testEmail}
+                    disabled={isSaving || !newNlData.brand_id || !newNlData.subject}
                     className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    {isSendingTest ? (
+                    {isSaving ? (
                       <>
                         <Loader2 className="animate-spin" size={18} />
-                        Envoi...
+                        Création...
                       </>
                     ) : (
                       <>
-                        <SendHorizontal size={18} />
-                        Envoyer
+                        <Plus size={18} />
+                        Créer
                       </>
                     )}
                   </button>
                 </div>
               </form>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {showUpgradeModal && (
-        <UpgradeModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          type={upgradeModalType}
-          currentPlan={userProfile?.subscription_plan || 'free'}
-          requiredFeature={upgradeModalFeature}
-        />
-      )}
+      {/* Send Test Email Modal */}
+      {
+        showScheduleModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl scale-100 animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black uppercase tracking-tight">Planifier l'envoi</h3>
+                <button onClick={() => setShowScheduleModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-all">
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                    Date d'envoi
+                  </label>
+                  <input
+                    type="date"
+                    value={scheduleData.date}
+                    onChange={(e) => setScheduleData({ ...scheduleData, date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
+                    Heure d'envoi
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduleData.time}
+                    onChange={(e) => setScheduleData({ ...scheduleData, time: e.target.value })}
+                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  {newsletter?.status === 'scheduled' && (
+                    <button
+                      onClick={() => {
+                        handleSaveNewsletter({ status: 'draft', scheduled_at: undefined });
+                        setShowScheduleModal(false);
+                      }}
+                      className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl font-bold text-sm hover:bg-red-100 transition-colors"
+                    >
+                      Annuler la planification
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (scheduleData.date && scheduleData.time) {
+                        const scheduledAt = new Date(`${scheduleData.date}T${scheduleData.time}`).toISOString();
+                        handleSaveNewsletter({ status: 'scheduled', scheduled_at: scheduledAt });
+                        setShowScheduleModal(false);
+                      }
+                    }}
+                    disabled={!scheduleData.date || !scheduleData.time}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+                  >
+                    Confirmer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Send Test Email Modal */}
+      {
+        showSendTestModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in-95 duration-300">
+              <h2 className="text-2xl font-bold mb-2">Envoyer un Test</h2>
+              <p className="text-gray-500 text-sm mb-6">
+                Recevez un aperçu de votre newsletter par email
+              </p>
+
+              {testEmailSent ? (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="text-green-600" size={32} />
+                  </div>
+                  <p className="text-lg font-bold text-green-600">Test envoyé !</p>
+                  <p className="text-sm text-gray-500">Vérifiez votre boîte de réception</p>
+                </div>
+              ) : (
+                <form onSubmit={handleSendTestEmail} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      Adresse email *
+                    </label>
+                    <input
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="votre@email.com"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:border-primary focus:outline-none transition-all"
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSendTestModal(false);
+                        setTestEmail('');
+                      }}
+                      className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                      disabled={isSendingTest}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSendingTest || !testEmail}
+                      className="flex-1 px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {isSendingTest ? (
+                        <>
+                          <Loader2 className="animate-spin" size={18} />
+                          Envoi...
+                        </>
+                      ) : (
+                        <>
+                          <SendHorizontal size={18} />
+                          Envoyer
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showUpgradeModal && (
+          <UpgradeModal
+            isOpen={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+            type={upgradeModalType}
+            currentPlan={userProfile?.subscription_plan || 'free'}
+            requiredFeature={upgradeModalFeature}
+          />
+        )
+      }
       <AlertModal
         isOpen={alertState.isOpen}
         onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
