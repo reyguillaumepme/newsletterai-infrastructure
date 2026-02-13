@@ -3,6 +3,7 @@ import { Mail, CheckCircle, Percent, Plus, Loader2, ArrowRight, Briefcase } from
 import { useNavigate, Link } from 'react-router-dom';
 import StatCard from '../components/StatCard';
 import { databaseService } from '../services/databaseService';
+import { mailService } from '../services/mailService';
 import { Newsletter, Brand } from '../types';
 import {
   LineChart,
@@ -46,7 +47,7 @@ const Dashboard: React.FC = () => {
           databaseService.fetchNewsletters(),
           databaseService.fetchBrands(),
           databaseService.fetchTotalContactCount(),
-          databaseService.fetchGlobalStatistics()
+          mailService.getGlobalStats()
         ]);
 
         startTransition(() => {

@@ -121,4 +121,9 @@ export interface Statistics {
   clicks: number;
   sent_count: number;
   date: string;
+  subject?: string;
+  image_url?: string;
+  brand_id?: string;
+  brand_logo?: string;
+  brand_name?: string;
 }

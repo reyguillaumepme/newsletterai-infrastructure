@@ -344,6 +344,88 @@ export const mailService = {
     return null;
   },
 
+  async getGlobalStats() {
+    try {
+      const newsletters = await databaseService.fetchNewsletters();
+      const sentNewsletters = newsletters.filter(n => n.status === 'sent' && n.brevo_campaign_id);
+
+      if (sentNewsletters.length === 0) {
+        return { avgOpenRate: 0, avgClickRate: 0, totalSent: 0 };
+      }
+
+      // Parallel fetch for performance
+      const statsPromises = sentNewsletters.map(n => this.getCampaignStats(n.brevo_campaign_id!));
+      const statsResults = await Promise.all(statsPromises);
+
+      let totalSent = 0;
+      let totalOpens = 0;
+      let totalClicks = 0;
+
+      statsResults.forEach(stat => {
+        if (stat) {
+          totalSent += (stat.delivered || 0);
+          totalOpens += (stat.uniqueViews || 0);
+          totalClicks += (stat.uniqueClicks || 0);
+        }
+      });
+
+      const avgOpenRate = totalSent > 0 ? parseFloat(((totalOpens / totalSent) * 100).toFixed(1)) : 0;
+      // Click rate is usually clicks / opens (CTO) or clicks / delivered (CTR). 
+      // User prompts usually imply CTR (Clicks / Delivered). But in email marketing it varies.
+      // Brevo UI shows CTR as Clicks/Delivered. CTO is Click-to-Open.
+      // In Stats.tsx line 54, it was calculating: (totalClicks / totalOpens * 100). This is Click-to-Open Rate (CTOR).
+      // However, line 53 calculates Open Rate as Opens/Sent.
+      // Let's stick to standard CTR (Clicks / Delivered) or match the previous logic?
+      // Previous logic in Statistics.tsx: const avgClickRate = totalOpens > 0 ? (totalClicks / totalOpens * 100).toFixed(1) : "0";
+      // This is CTOR. If user wants "Key Indicators", usually CTR is more standard but Marketing pros look at CTOR.
+      // Let's follow the previous logic for now to avoid changing "Indicators" as requested ("sans changer le type de Graphs ni les indicateurs").
+      const avgClickRate = totalOpens > 0 ? parseFloat(((totalClicks / totalOpens) * 100).toFixed(1)) : 0;
+
+      return { avgOpenRate, avgClickRate, totalSent };
+    } catch (error) {
+      console.warn("Error calculating global stats:", error);
+      return { avgOpenRate: 0, avgClickRate: 0, totalSent: 0 };
+    }
+  },
+
+  async getAllCampaignStatistics() {
+    try {
+      const newsletters = await databaseService.fetchNewsletters();
+      const sentNewsletters = newsletters.filter(n => n.status === 'sent' && n.brevo_campaign_id);
+
+      const statsPromises = sentNewsletters.map(async (n) => {
+        const stat = await this.getCampaignStats(n.brevo_campaign_id!);
+        let imageUrl = undefined;
+        try {
+          const ideas = await databaseService.fetchIdeasByNewsletter(n.id);
+          imageUrl = ideas.find(i => i.image_url)?.image_url;
+        } catch (e) {
+          // Ignore error fetching ideas
+        }
+
+        return {
+          id: n.id,
+          newsletter_id: n.id,
+          opens: stat?.uniqueViews || 0,
+          clicks: stat?.uniqueClicks || 0,
+          sent_count: stat?.delivered || 0,
+          date: new Date(n.created_at).toLocaleDateString("fr-FR", { day: '2-digit', month: '2-digit' }),// DD/MM format for charts
+          subject: n.subject,
+          image_url: imageUrl,
+          brand_id: n.brand_id,
+          brand_logo: n.brands?.logo_url,
+          brand_name: n.brands?.brand_name,
+          full_date: n.created_at // For sorting
+        };
+      });
+
+      return await Promise.all(statsPromises);
+    } catch (error) {
+      console.warn("Error fetching all campaign stats:", error);
+      return [];
+    }
+  },
+
   async getBrandStats(brandId: string) {
     try {
       const newsletters = await databaseService.fetchNewsletters();
