@@ -325,7 +325,7 @@ export const mailService = {
       // Check if globalStats is empty/zero (common with Brevo API for some campaign types) and if detailed campaignStats exist
       if (stats && stats.delivered === 0 && data.statistics.campaignStats && Array.isArray(data.statistics.campaignStats)) {
         // Aggregate campaignStats
-        return data.statistics.campaignStats.reduce((acc: any, curr: any) => ({
+        const aggregated = data.statistics.campaignStats.reduce((acc: any, curr: any) => ({
           uniqueViews: (acc.uniqueViews || 0) + (curr.uniqueViews || 0),
           uniqueClicks: (acc.uniqueClicks || 0) + (curr.uniqueClicks || 0),
           delivered: (acc.delivered || 0) + (curr.delivered || 0),
@@ -335,9 +335,11 @@ export const mailService = {
           softBounces: (acc.softBounces || 0) + (curr.softBounces || 0),
           unsubscriptions: (acc.unsubscriptions || 0) + (curr.unsubscriptions || 0),
         }), { uniqueViews: 0, uniqueClicks: 0, delivered: 0, sent: 0, complaints: 0, hardBounces: 0, softBounces: 0, unsubscriptions: 0 });
+
+        return { ...aggregated, sentDate: data.sentDate };
       }
 
-      return stats;
+      return { ...stats, sentDate: data.sentDate };
     }
 
     console.warn("Unexpected Brevo API response structure:", data);
@@ -403,19 +405,21 @@ export const mailService = {
           // Ignore error fetching ideas
         }
 
+        const dateToUse = stat?.sentDate ? new Date(stat.sentDate) : new Date(n.created_at);
+
         return {
           id: n.id,
           newsletter_id: n.id,
           opens: stat?.uniqueViews || 0,
           clicks: stat?.uniqueClicks || 0,
           sent_count: stat?.delivered || 0,
-          date: new Date(n.created_at).toLocaleDateString("fr-FR", { day: '2-digit', month: '2-digit' }),// DD/MM format for charts
+          date: dateToUse.toLocaleDateString("fr-FR", { day: '2-digit', month: '2-digit' }),// DD/MM format for charts
           subject: n.subject,
           image_url: imageUrl,
           brand_id: n.brand_id,
           brand_logo: n.brands?.logo_url,
           brand_name: n.brands?.brand_name,
-          full_date: n.created_at // For sorting
+          full_date: dateToUse.toISOString() // For sorting
         };
       });
 

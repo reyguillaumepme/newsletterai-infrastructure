@@ -119,8 +119,12 @@ const Brands: React.FC = () => {
           {filteredBrands.map((brand) => (
             <Link to={`/brands/${brand.id}`} key={brand.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group hover:-translate-y-1 flex flex-col h-full overflow-hidden relative">
               <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-700 group-hover:bg-primary transition-colors">
-                  <Briefcase size={28} />
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-700 group-hover:bg-primary transition-colors overflow-hidden">
+                  {brand.logo_url ? (
+                    <img src={brand.logo_url} alt={brand.brand_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Briefcase size={28} />
+                  )}
                 </div>
                 <button className="p-2 text-gray-400 hover:text-gray-900 transition-colors"><MoreVertical size={20} /></button>
               </div>
