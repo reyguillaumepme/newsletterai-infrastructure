@@ -121,7 +121,32 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                     style={{ width: `${results.spam_score.score}%` }}
                                 ></div>
                             </div>
-                            <p className="text-xs opacity-90">{results.spam_score.message}</p>
+                            <p className="text-xs opacity-90 mb-3">{results.spam_score.message}</p>
+
+                            {results.spam_score.spam_checks && (
+                                <div className="space-y-1 bg-white/50 p-3 rounded-lg">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Détails des vérifications</p>
+                                    {results.spam_score.spam_checks.map((check, index) => (
+                                        <div key={index} className="flex items-center justify-between text-xs">
+                                            <div className="flex items-center gap-2">
+                                                {check.passed ? (
+                                                    <CheckCircle size={12} className="text-green-600" />
+                                                ) : (
+                                                    <AlertTriangle size={12} className="text-red-500" />
+                                                )}
+                                                <span className={`${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                    {check.label}
+                                                </span>
+                                            </div>
+                                            {!check.passed && (
+                                                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                                                    +{check.penalty}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

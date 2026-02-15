@@ -43,18 +43,48 @@ export const complianceService = {
         // 4. Score de Spam (Analyse de contenu et sujet)
         const spamKeywords = ["gratuit", "free", "promo", "urgent", "gagnez", "winner", "cash", "argent", "!!!", "$$$", "€€€"];
         let spamScore = 0; // 0 = Clean, 100 = Spam
+        const spamDetails: string[] = [];
+        const spamChecks: { label: string; passed: boolean; penalty: number }[] = [];
 
         const subjectLower = subject.toLowerCase();
         const contentLower = content.toLowerCase();
 
         // Check subject (weight higher)
         spamKeywords.forEach(kw => {
-            if (subjectLower.includes(kw)) spamScore += 20;
+            const hasKeyword = subjectLower.includes(kw);
+            if (hasKeyword) {
+                spamScore += 20;
+                spamDetails.push(`Mot-clé "${kw}" dans le sujet (+20)`);
+            }
+            spamChecks.push({
+                label: `Absence du mot-clé "${kw}" dans le sujet`,
+                passed: !hasKeyword,
+                penalty: hasKeyword ? 20 : 0
+            });
         });
 
         // Check content
-        if (contentLower.includes("cliquez ici")) spamScore += 5;
-        if (subject === subject.toUpperCase() && subject.length > 5) spamScore += 30; // ALL CAPS SUBJECT
+        const hasClickHere = contentLower.includes("cliquez ici");
+        if (hasClickHere) {
+            spamScore += 5;
+            spamDetails.push(`Terme "cliquez ici" détecté (+5)`);
+        }
+        spamChecks.push({
+            label: `Absence de la mention "cliquez ici"`,
+            passed: !hasClickHere,
+            penalty: hasClickHere ? 5 : 0
+        });
+
+        const isAllCaps = subject && subject === subject.toUpperCase() && subject.length > 5;
+        if (isAllCaps) {
+            spamScore += 30; // ALL CAPS SUBJECT
+            spamDetails.push(`Sujet entièrement en majuscules (+30)`);
+        }
+        spamChecks.push({
+            label: `Format du sujet (pas de MAJUSCULES intégrales)`,
+            passed: !isAllCaps,
+            penalty: isAllCaps ? 30 : 0
+        });
 
         // Cap score
         spamScore = Math.min(100, spamScore);
@@ -64,7 +94,7 @@ export const complianceService = {
 
         if (spamScore >= 50) {
             spamStatus = 'warning';
-            spamMsg = `Attention, score de spam moyen (${spamScore}/100). Évitez les majuscules et mots agressifs.`;
+            spamMsg = `Attention, score de spam moyen (${spamScore}/100).`;
         }
         if (spamScore >= 80) {
             spamStatus = 'error';
@@ -83,7 +113,7 @@ export const complianceService = {
             mentions: { status: mentionsStatus, message: mentionsMessage },
             unsubscribe: { status: unsubStatus, message: unsubMessage },
             ai_marker: { status: aiStatus, message: aiMessage },
-            spam_score: { score: spamScore, status: spamStatus, message: spamMsg },
+            spam_score: { score: spamScore, status: spamStatus, message: spamMsg, details: spamDetails, spam_checks: spamChecks },
             overall_status: overall
         };
     },
@@ -113,7 +143,22 @@ export const complianceService = {
                 if (snapshot.mentions?.status !== 'success') issues.push(`Mentions: ${snapshot.mentions?.message}`);
                 if (snapshot.unsubscribe?.status !== 'success') issues.push(`Désabonnement: ${snapshot.unsubscribe?.message}`);
                 if (snapshot.ai_marker?.status === 'warning') issues.push(`IA: ${snapshot.ai_marker?.message}`);
-                if (snapshot.spam_score?.status !== 'success') issues.push(`Spam: ${snapshot.spam_score?.message} (${snapshot.spam_score?.score}/100)`);
+                // Spam details (include all checks if available)
+                if (snapshot.spam_score?.spam_checks && snapshot.spam_score?.spam_checks.length > 0) {
+                    const checkSummary = snapshot.spam_score.spam_checks.map((c: any) =>
+                        `${c.passed ? '✅' : '❌'} ${c.label}` + (!c.passed ? ` (+${c.penalty})` : '')
+                    ).join(', ');
+                    issues.push(`Spam (${snapshot.spam_score.score}/100): ${checkSummary}`);
+                } else if (snapshot.spam_score?.status !== 'success') {
+                    // Fallback to old format
+                    let spamMsg = `Spam: ${snapshot.spam_score?.message} (${snapshot.spam_score?.score}/100)`;
+                    if (snapshot.spam_score?.details && snapshot.spam_score.details.length > 0) {
+                        spamMsg += ` [${snapshot.spam_score.details.join(', ')}]`;
+                    }
+                    issues.push(spamMsg);
+                } else {
+                    issues.push(`Spam: OK (${snapshot.spam_score?.score}/100)`);
+                }
 
                 details = issues.join(" | ");
             } catch (e) {
