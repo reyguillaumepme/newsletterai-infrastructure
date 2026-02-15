@@ -32,8 +32,8 @@ export const complianceService = {
 
         // 3. Marqueur IA (AI Act - Transparence)
         // On encourage la transparence. Ce n'est pas encore strictement bloquant partout, mais recommandé.
-        const aiKeywords = ["généré par ia", "assisté par ia", "artificial intelligence", "ia", "ai assistant", "contenu automatisé"];
-        const hasAiMarker = aiKeywords.some(kw => content.toLowerCase().includes(kw));
+        const aiKeywords = ["généré par ia", "assisté par ia", "artificial intelligence", "ia", "ai assistant", "contenu automatisé", "intelligence artificielle"];
+        const hasAiMarker = (newsletter.show_ai_transparency === true) || aiKeywords.some(kw => content.toLowerCase().includes(kw));
 
         const aiStatus = hasAiMarker ? 'success' : 'warning';
         const aiMessage = hasAiMarker

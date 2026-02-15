@@ -44,7 +44,8 @@ import {
   UserX,
   BarChart3,
   MousePointer2,
-  Mail
+  Mail,
+  Sparkles
 } from 'lucide-react';
 import AnalyticsCard from '../components/AnalyticsCard';
 import { databaseService } from '../services/databaseService';
@@ -606,7 +607,11 @@ const NewsletterDetail: React.FC = () => {
 
     // 1. Run Audit with CURRENT content (including footer state or default)
     const effectiveFooter = footerValue || generateDefaultFooter(brand?.brand_name || 'NewsletterAI');
-    const newsletterToAudit = { ...newsletter, footer_content: effectiveFooter };
+    const newsletterToAudit = {
+      ...newsletter,
+      footer_content: effectiveFooter,
+      show_ai_transparency: newsletter.show_ai_transparency
+    };
 
     const results = complianceService.runAudit(newsletterToAudit, brand);
     setComplianceResults(results);
@@ -745,7 +750,20 @@ const NewsletterDetail: React.FC = () => {
               <img src="${brandLogo}" height="35" alt="${brandName}" style="filter: grayscale(100%);" />
             </div>
           ` : ''}
-          ${footerValue || generateDefaultFooter(brandName)}
+          ${(() => {
+        let footerContent = footerValue || generateDefaultFooter(brandName);
+        if (newsletter.show_ai_transparency) {
+          const aiMention = `<p style="margin: 0 0 10px 0; font-size: 10px; color: #cbd5e1; font-style: italic;">Contenu généré avec l'assistance d'une IA • AI Act Transparency</p>`;
+          // Try to inject before copyright
+          if (footerContent.match(/Tous droits réservés/i)) {
+            footerContent = footerContent.replace(/(<p[^>]*>.*?Tous droits réservés.*?<\/p>)/i, `${aiMention}$1`);
+          } else {
+            // Fallback: append at end
+            footerContent += aiMention;
+          }
+        }
+        return footerContent;
+      })()}
         </div>
       </div></body></html>`;
   };
@@ -907,6 +925,20 @@ const NewsletterDetail: React.FC = () => {
                       }`}
                   >
                     <ImageIcon size={14} /> Logo Footer: {newsletter?.show_footer_logo ? 'Activé' : 'Désactivé'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!newsletter || isSent) return;
+                      const newVal = !newsletter.show_ai_transparency;
+                      handleSaveNewsletter({ show_ai_transparency: newVal });
+                    }}
+                    disabled={isSent}
+                    title="Afficher une mention de transparence IA conforme à l'AI Act"
+                    className={`ml-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 ${isSent ? 'bg-gray-50 text-gray-300 border-2 border-gray-100 cursor-not-allowed' :
+                      newsletter?.show_ai_transparency ? 'bg-indigo-50 text-indigo-600 border-2 border-indigo-100' : 'bg-gray-50 text-gray-400 border-2 border-gray-100'
+                      }`}
+                  >
+                    <Sparkles size={14} /> Transparence IA: {newsletter?.show_ai_transparency ? 'ON' : 'OFF'}
                   </button>
                 </div>
                 <div className={`relative footer-editor flex-grow ${isSent ? 'bg-gray-50' : ''}`}>
