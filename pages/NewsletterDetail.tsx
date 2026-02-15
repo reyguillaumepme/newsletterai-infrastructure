@@ -605,10 +605,15 @@ const NewsletterDetail: React.FC = () => {
   const handleSubmitForCompliance = (forceImmediate: boolean = false) => {
     if (!newsletter) return;
 
-    // 1. Run Audit with CURRENT content (including footer state or default)
+    // 1. Run Audit with FULL content (including generated HTML)
+    const fullHtml = renderNewsletterHtml();
     const effectiveFooter = footerValue || generateDefaultFooter(brand?.brand_name || 'NewsletterAI');
+
+    // We construct a specific object for the audit that mimics the Newsletter structure
+    // but with the CONTENT field containing the FULL HTML to be sent.
     const newsletterToAudit = {
       ...newsletter,
+      content: fullHtml, // CRITICAL: We pass the full HTML here for Spam Analysis
       footer_content: effectiveFooter,
       show_ai_transparency: newsletter.show_ai_transparency
     };
