@@ -149,7 +149,7 @@ export const complianceService = {
         const catContent = "Corps du message (Contenu HTML)";
 
         // Mots-clés interdits & Urgence (Sur tous les composants)
-        const forbiddenKeywords = ["gratuit", "free", "promo", "gagnez", "cash", "winner", "cadeau", "urgent", "immédiat", "vite", "cliquez ici", "click here"];
+        const forbiddenKeywords = ["gratuit", "free", "promo", "gagnez", "cash", "winner", "cadeau", "urgent", "immédiat", "cliquez ici", "click here"];
         const foundKeywords: { word: string; loc: string }[] = [];
 
         components.forEach(comp => {
