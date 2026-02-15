@@ -288,6 +288,11 @@ export const databaseService = {
       };
     }
 
+    // Default logo_alt if absent
+    if (!brand.logo_alt && brand.brand_name) {
+      brand.logo_alt = `image du logo de la marque : ${brand.brand_name}`;
+    }
+
     if (!isUsingCloud()) {
       const newItem = { ...brand, id: storage.generateId(), user_id: user.id, created_at: new Date().toISOString() };
       storage.set('brands', [...storage.get('brands'), newItem]);
@@ -546,6 +551,12 @@ export const databaseService = {
     const user = authService.getCurrentUser();
     if (!user) throw new Error("Non connecté");
     if (idea.image_url?.startsWith('data:')) idea.image_url = await this.uploadImage(idea.image_url);
+
+    // Default image_alt if image present but alt missing
+    if (idea.image_url && !idea.image_alt) {
+      idea.image_alt = `image représentant : ${idea.title || 'idée'}`;
+    }
+
     if (!isUsingCloud()) {
       const newItem = { ...idea, id: storage.generateId(), user_id: user.id, created_at: new Date().toISOString(), used: false, order_index: 0 };
       storage.set('ideas', [...storage.get('ideas'), newItem]);

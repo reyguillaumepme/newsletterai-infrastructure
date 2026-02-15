@@ -101,9 +101,18 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                     {/* Marqueur IA */}
                     <div className={`flex items-start gap-3 p-3 rounded-xl border ${getStatusColor(results.ai_marker.status)}`}>
                         {getStatusIcon(results.ai_marker.status)}
-                        <div>
+                        <div className="flex-1">
                             <p className="font-semibold text-sm">Transparence IA (AI Act)</p>
                             <p className="text-xs opacity-90">{results.ai_marker.message}</p>
+                            {results.ai_marker.status === 'success' && results.ai_marker.matches && results.ai_marker.matches.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                    {results.ai_marker.matches.map((match, i) => (
+                                        <span key={i} className="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                                            Détecté : {match}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -36,9 +36,30 @@ export const complianceService = {
             : "Lien de désabonnement manquant (obligatoire).";
 
         // 3. Marqueur IA (AI Act - Transparence)
-        const aiKeywords = ["généré par ia", "assisté par ia", "artificial intelligence", "ia", "ai assistant", "contenu automatisé", "intelligence artificielle"];
-        const hasAiMarker = (newsletter.show_ai_transparency === true) || aiKeywords.some(kw => fullContent.toLowerCase().includes(kw));
+        const aiKeywords = [
+            "généré par ia",
+            "assisté par ia",
+            "généré par intelligence artificielle",
+            "assisté par intelligence artificielle",
+            "artificial intelligence",
+            "ai assistant",
+            "contenu automatisé",
+            "intelligence artificielle"
+        ];
 
+        const foundAiMarkers: string[] = [];
+        if (newsletter.show_ai_transparency === true) {
+            foundAiMarkers.push("Activé via paramètres");
+        }
+
+        aiKeywords.forEach(kw => {
+            const regex = new RegExp(`(^|[^a-zA-Z0-9À-ÿ])${kw}($|[^a-zA-Z0-9À-ÿ])`, "i");
+            if (regex.test(fullContent)) {
+                foundAiMarkers.push(kw);
+            }
+        });
+
+        const hasAiMarker = foundAiMarkers.length > 0;
         const aiStatus = hasAiMarker ? 'success' : 'warning';
         const aiMessage = hasAiMarker
             ? "Transparence IA respectée."
@@ -388,7 +409,7 @@ export const complianceService = {
         return {
             mentions: { status: mentionsStatus, message: mentionsMessage },
             unsubscribe: { status: unsubStatus, message: unsubMessage },
-            ai_marker: { status: aiStatus, message: aiMessage },
+            ai_marker: { status: aiStatus, message: aiMessage, matches: foundAiMarkers },
             spam_score: { score: spamScore, status: spamStatus, message: spamMsg, spam_checks: spamChecks },
             overall_status: overall
         };

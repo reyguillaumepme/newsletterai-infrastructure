@@ -735,7 +735,7 @@ const NewsletterDetail: React.FC = () => {
       <body style="padding: 20px; margin:0;">
       <div style="max-width: 750px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #f1f5f9; width: 100%; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
         <div style="padding: 40px; text-align: center; border-bottom: 4px solid ${primaryColor};">
-          ${brandLogo ? `<img src="${brandLogo}" height="60" style="margin-bottom: 25px;" alt="${brandName}" />` : ''}
+          ${brandLogo ? `<img src="${brandLogo}" height="60" style="margin-bottom: 25px;" alt="${brand?.logo_alt || brandName}" />` : ''}
           <h1 style="margin: 0; font-size: 28px; color: #0f172a; font-weight: 800;">${newsletter?.subject || 'Newsletter'}</h1>
         </div>
         <div style="padding: 40px; background-color: #ffffff; text-align: left;">
@@ -744,7 +744,7 @@ const NewsletterDetail: React.FC = () => {
            </div>
         </div>
         ${ideas.map(i => `<div style="padding: 40px; border-top: 1px solid #f1f5f9;">
-          ${i.image_url ? `<img src="${i.image_url}" width="100%" style="border-radius: 12px; margin-bottom: 24px;" />` : ''}
+          ${i.image_url ? `<img src="${i.image_url}" width="100%" style="border-radius: 12px; margin-bottom: 24px;" alt="${i.image_alt || ''}" />` : ''}
           <h3 style="margin: 0 0 16px 0; font-size: 22px; color: #0f172a; font-weight: 800;">${i.title}</h3>
           <div class="content-area" style="font-size: 15px; color: #475569;">
             ${formatContent(i.content)}

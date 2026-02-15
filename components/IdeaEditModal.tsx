@@ -71,6 +71,7 @@ const IdeaEditModal: React.FC<IdeaEditModalProps> = ({
     // STUDIO VISUEL STATES
     const [studioImagePreview, setStudioImagePreview] = useState<string | null>(idea.image_url || null);
     const [studioPrompt, setStudioPrompt] = useState(idea.image_prompt || idea.title);
+    const [studioImageAlt, setStudioImageAlt] = useState(idea.image_alt || `image représentant : ${idea.title}`);
     const [selectedStyle, setSelectedStyle] = useState(VISUAL_STYLES[0]);
     const [aspectRatio, setAspectRatio] = useState<"1:1" | "16:9" | "9:16">("16:9");
     const [importedImage, setImportedImage] = useState<string | null>(null);
@@ -83,6 +84,7 @@ const IdeaEditModal: React.FC<IdeaEditModalProps> = ({
     const handleOpenStudio = () => {
         startTransition(() => {
             setStudioPrompt(selectedIdea.image_prompt || selectedIdea.title);
+            setStudioImageAlt(selectedIdea.image_alt || `image représentant : ${selectedIdea.title}`);
             setStudioImagePreview(selectedIdea.image_url || null);
             setImportedImage(null);
             setImageFilters({ brightness: 100, contrast: 100, saturation: 100 });
@@ -193,7 +195,8 @@ const IdeaEditModal: React.FC<IdeaEditModalProps> = ({
 
             const updated = await databaseService.updateIdea(selectedIdea.id, {
                 image_url: finalImage,
-                image_prompt: studioPrompt
+                image_prompt: studioPrompt,
+                image_alt: studioImageAlt
             });
             if (updated) {
                 setSelectedIdea(updated);
@@ -343,6 +346,20 @@ const IdeaEditModal: React.FC<IdeaEditModalProps> = ({
                             </div>
 
                             <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
+                                <div className="space-y-4">
+                                    <label className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                                        <ImageIcon size={14} className="text-primary" /> Texte alternatif (SEO & Accessibilité)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={studioImageAlt}
+                                        onChange={e => setStudioImageAlt(e.target.value)}
+                                        className="w-full bg-gray-50 border border-transparent focus:border-gray-200 focus:bg-white rounded-xl p-3 text-gray-900 font-medium text-xs outline-none transition-all shadow-inner"
+                                        placeholder="Description de l'image..."
+                                    />
+                                    <p className="text-[10px] text-gray-400 font-medium">Ce texte s'affichera si l'image ne charge pas et aide les malvoyants.</p>
+                                </div>
+
                                 {editTab === 'generate' ? (
                                     <>
                                         <div className="space-y-4">

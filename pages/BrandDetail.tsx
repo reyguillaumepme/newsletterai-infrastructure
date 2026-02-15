@@ -180,6 +180,10 @@ const BrandDetail: React.FC = () => {
   const handleSave = async () => {
     if (!brand || !id) return;
     setIsSaving(true);
+
+    // Default logo_alt if missing
+    const finalLogoAlt = brand.logo_alt || `image du logo de la marque : ${brand.brand_name}`;
+
     try {
       const payload: Partial<Brand> = {
         brand_name: brand.brand_name,
@@ -187,6 +191,7 @@ const BrandDetail: React.FC = () => {
         target_audience: brand.target_audience,
         editorial_tone: brand.editorial_tone,
         logo_url: brand.logo_url,
+        logo_alt: finalLogoAlt,
         desired_perception: brand.desired_perception,
         skills_strengths: brand.skills_strengths,
         values_beliefs: brand.values_beliefs,
@@ -461,6 +466,18 @@ const BrandDetail: React.FC = () => {
                         </div>
                       )}
                       <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
+                    </div>
+                    {/* Logo Alt Text Field */}
+                    <div className="space-y-2 mt-4 max-w-[200px]">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Texte alternatif (Logo)</label>
+                      <input
+                        type="text"
+                        value={brand.logo_alt || ""}
+                        onChange={e => setBrand({ ...brand, logo_alt: e.target.value })}
+                        placeholder={`image du logo de la marque : ${brand.brand_name}`}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                      <p className="text-[9px] text-gray-400 font-medium px-1">Essentiel pour le SEO et l'accessibilité.</p>
                     </div>
                   </div>
                   <div className="flex-1 space-y-6">

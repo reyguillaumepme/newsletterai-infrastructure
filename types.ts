@@ -38,6 +38,7 @@ export interface Brand {
   target_audience: string;
   editorial_tone: string;
   logo_url?: string;
+  logo_alt?: string;
   desired_perception?: string;
   skills_strengths?: string;
   values_beliefs?: string;
@@ -108,6 +109,7 @@ export interface Idea {
   content: string;
   image_url?: string;
   image_prompt?: string;
+  image_alt?: string;
   source: string;
   source_type: SourceType;
   used: boolean;
@@ -135,7 +137,7 @@ export type ComplianceCheckStatus = 'success' | 'warning' | 'error';
 export interface ComplianceCheckResult {
   mentions: { status: ComplianceCheckStatus; message: string };
   unsubscribe: { status: ComplianceCheckStatus; message: string };
-  ai_marker: { status: ComplianceCheckStatus; message: string };
+  ai_marker: { status: ComplianceCheckStatus; message: string; matches?: string[] };
   spam_score: { score: number; status: ComplianceCheckStatus; message: string; details?: string[]; spam_checks?: { label: string; passed: boolean; penalty: number; category: string; remediation?: string; location?: string; matches?: string[] }[] };
   overall_status: ComplianceCheckStatus;
 }
