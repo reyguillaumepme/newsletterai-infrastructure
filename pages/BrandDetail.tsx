@@ -840,7 +840,10 @@ const BrandDetail: React.FC = () => {
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-center gap-4 p-6 border-b border-gray-50">
             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl"><LinkIcon size={20} /></div>
-            <h3 className="text-lg font-bold uppercase tracking-tight">Configuration Page Publique</h3>
+            <div>
+              <h3 className="text-lg font-bold uppercase tracking-tight">CONFIGURATION PAGE D'INSCRIPTION</h3>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Personnalisez votre page de capture pour recueillir de nouveaux abonnés.</p>
+            </div>
           </div>
 
           <div className="p-8 space-y-8">
@@ -868,9 +871,10 @@ const BrandDetail: React.FC = () => {
                     navigator.clipboard.writeText(`${window.location.origin}/#/subscribe/${brandSlug}`);
                     setAlertState({ isOpen: true, message: "Lien copié !", type: 'success' });
                   }}
-                  className="p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
+                  className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20 text-[10px] font-black uppercase tracking-widest shrink-0"
                 >
-                  <LinkIcon size={18} />
+                  <LinkIcon size={16} />
+                  COPIER LE LIEN
                 </button>
               </div>
             </div>
@@ -924,7 +928,7 @@ const BrandDetail: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Couleur Principale</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">COULEUR DU BOUTON</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="color"

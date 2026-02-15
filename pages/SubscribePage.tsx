@@ -147,13 +147,14 @@ export default function SubscribePage() {
                     </div>
 
                     <div>
-                        <label htmlFor="firstname" className="block text-sm font-bold text-slate-700 mb-2 ml-1">Prénom (Optionnel)</label>
+                        <label htmlFor="firstname" className="block text-sm font-bold text-slate-700 mb-2 ml-1">Nom et Prénom</label>
                         <input
                             type="text"
                             id="firstname"
+                            required
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Votre prénom"
+                            placeholder="Votre nom complet"
                             className="w-full px-5 py-4 rounded-xl bg-slate-50 border-2 border-slate-100 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-0 transition-all font-medium"
                         />
                     </div>
