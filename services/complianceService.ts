@@ -97,10 +97,7 @@ export const complianceService = {
         // --- 2. Corps du message (Contenu HTML) ---
         const catContent = "Corps du message (Contenu HTML)";
 
-        // Lien de désabonnement
-        const hasUnsubLink = /unsubscribe|désabonner|desabonner/i.test(content) || content.includes('{{unsubscribe_url}}');
-        if (!hasUnsubLink) { spamScore -= 50; spamDetails.push("Lien de désabonnement manquant (-50)"); }
-        spamChecks.push({ label: "Présence du lien de désabonnement", passed: hasUnsubLink, penalty: 50, category: catContent });
+
 
         // Raccourcisseurs URL
         const hasShortener = /bit\.ly|tinyurl\.com|goo\.gl|ow\.ly/.test(content);
