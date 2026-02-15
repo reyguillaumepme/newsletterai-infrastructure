@@ -105,7 +105,7 @@ export const complianceService = {
 
                 // Determine readable status
                 if (snapshot.overall_status === 'success') status = "CONFORME";
-                else if (snapshot.overall_status === 'warning') status = "AVERTISSEMENT";
+                else if (snapshot.overall_status === 'warning') status = "RECOMMANDATION";
                 else if (snapshot.overall_status === 'error') status = "NON CONFORME";
 
                 // Build details string

@@ -102,7 +102,7 @@ const GdprRegistryTable: React.FC<GdprRegistryTableProps> = ({ logs, isLoading, 
                                             </span>
                                         ) : complianceStatus === 'warning' ? (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold ring-1 ring-orange-100">
-                                                <AlertTriangle size={12} /> Avertissements
+                                                <AlertTriangle size={12} /> Recommandations
                                             </span>
                                         ) : complianceStatus === 'error' ? (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-bold ring-1 ring-red-100">
