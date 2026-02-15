@@ -110,7 +110,9 @@ export const complianceService = {
             passed: foundUrgency.length === 0,
             penalty: 10,
             category: catSubject,
-            remediation: "Évitez les termes créant une fausse urgence, les filtres antispam les détestent."
+            remediation: foundUrgency.length > 0
+                ? `Mots détectés : ${foundUrgency.map(w => `"${w}"`).join(', ')}. Évitez ces termes qui créent une fausse urgence.`
+                : "Évitez les termes créant une fausse urgence, les filtres antispam les détestent."
         });
 
         // Re: / Fwd:
@@ -199,7 +201,9 @@ export const complianceService = {
             passed: foundPressure.length === 0,
             penalty: 5,
             category: catContent,
-            remediation: "Utilisez des appels à l'action clairs mais moins agressifs que 'Cliquez ici'."
+            remediation: foundPressure.length > 0
+                ? `Mots détectés : ${foundPressure.map(w => `"${w}"`).join(', ')}. Utilisez des appels à l'action plus doux.`
+                : "Utilisez des appels à l'action clairs mais moins agressifs que 'Cliquez ici'."
         });
 
         // --- 3. Technique et Expéditeur ---
