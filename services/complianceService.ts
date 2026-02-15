@@ -92,7 +92,10 @@ export const complianceService = {
 
         // Urgence factice
         const urgencyKeywords = ["urgent", "immédiat", "action requise", "vite"];
-        const foundUrgency = urgencyKeywords.filter(kw => subject.toLowerCase().includes(kw));
+        const foundUrgency = urgencyKeywords.filter(kw => {
+            const regex = new RegExp(`(^|[^a-zA-Z0-9À-ÿ])${kw}($|[^a-zA-Z0-9À-ÿ])`, "i");
+            return regex.test(subject);
+        });
         if (foundUrgency.length > 0) { spamScore -= 10; }
         spamChecks.push({
             label: "Pas d'urgence factice (Urgent, Vite...)",
@@ -151,9 +154,9 @@ export const complianceService = {
 
         components.forEach(comp => {
             const cleanText = comp.isHtml ? comp.content.replace(/<[^>]*>/g, ' ') : comp.content;
-            const lowerText = cleanText.toLowerCase();
             forbiddenKeywords.forEach(kw => {
-                if (lowerText.includes(kw)) {
+                const regex = new RegExp(`(^|[^a-zA-Z0-9À-ÿ])${kw}($|[^a-zA-Z0-9À-ÿ])`, "i");
+                if (regex.test(cleanText)) {
                     foundKeywords.push({ word: kw, loc: comp.name });
                 }
             });
