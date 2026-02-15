@@ -65,7 +65,7 @@ export const complianceService = {
         });
 
         // Ponctuation excessive
-        const excessivePuncMatch = subject.match(/[!?.]{3,}/g);
+        const excessivePuncMatch = subject.match(/[!?]{3,}/g);
         if (excessivePuncMatch) { spamScore -= 15; }
         spamChecks.push({
             label: "Pas de ponctuation excessive (!!!, ???)",
@@ -74,7 +74,7 @@ export const complianceService = {
             category: catSubject,
             location: "Sujet",
             matches: excessivePuncMatch ? Array.from(new Set(excessivePuncMatch)) : undefined,
-            remediation: "Limitez la ponctuation à un seul signe à la fois (! ou ?)."
+            remediation: "Évitez d'utiliser plus de 2 signes de ponctuation à la suite (ex: !!!)."
         });
 
         // Caractères monétaires
@@ -267,7 +267,7 @@ export const complianceService = {
         const contentPuncMatches: { word: string; loc: string }[] = [];
         components.filter(c => c.id !== 'subject').forEach(comp => {
             const cleanText = comp.content.replace(/<[^>]*>/g, ' ');
-            const matches = cleanText.match(/[!?.]{3,}/g);
+            const matches = cleanText.match(/[!?]{3,}/g);
             if (matches) {
                 matches.forEach(m => contentPuncMatches.push({ word: m, loc: comp.name }));
             }
@@ -282,7 +282,7 @@ export const complianceService = {
                 category: catDesign,
                 location: Array.from(new Set(contentPuncMatches.map(f => f.loc))).join(', '),
                 matches: Array.from(new Set(contentPuncMatches.map(f => f.word))),
-                remediation: "Évitez les séries de points d'exclamation ou d'interrogation."
+                remediation: "Évitez d'utiliser plus de 2 points d'exclamation ou d'interrogation consécutifs."
             });
         } else {
             spamChecks.push({ label: "Ponctuation modérée", passed: true, penalty: 10, category: catDesign });
