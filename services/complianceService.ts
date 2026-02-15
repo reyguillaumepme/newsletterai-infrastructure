@@ -90,17 +90,47 @@ export const complianceService = {
 
     /**
      * Génère un fichier CSV pour le registre des traitements.
+     * @param logs Liste des logs de conformité
+     * @param brandName Nom de la marque (optionnel) pour remplacer l'ID
      */
-    exportRegistryToCSV(logs: ComplianceLog[]): string {
-        const headers = ["ID", "Date d'envoi", "Marque", "Campagne (Sujet)", "Destinataires", "Conformité (Snapshot)"];
-        const rows = logs.map(log => [
-            log.id,
-            new Date(log.sent_at).toLocaleString('fr-FR'),
-            log.brand_id, // Idéalement on voudrait le nom, mais pour l'export brut ça passe
-            `"${log.subject.replace(/"/g, '""')}"`,
-            log.recipient_count,
-            `"${log.compliance_snapshot.replace(/"/g, '""')}"`
-        ]);
+    exportRegistryToCSV(logs: ComplianceLog[], brandName?: string): string {
+        const headers = ["ID", "Date d'envoi", "Marque", "Campagne (Sujet)", "Destinataires", "Statut Conformité", "Détails Audit"];
+
+        const rows = logs.map(log => {
+            let status = "INCONNU";
+            let details = "";
+
+            try {
+                const snapshot = JSON.parse(log.compliance_snapshot);
+
+                // Determine readable status
+                if (snapshot.overall_status === 'success') status = "CONFORME";
+                else if (snapshot.overall_status === 'warning') status = "AVERTISSEMENT";
+                else if (snapshot.overall_status === 'error') status = "NON CONFORME";
+
+                // Build details string
+                const issues = [];
+                if (snapshot.mentions?.status !== 'success') issues.push(`Mentions: ${snapshot.mentions?.message}`);
+                if (snapshot.unsubscribe?.status !== 'success') issues.push(`Désabonnement: ${snapshot.unsubscribe?.message}`);
+                if (snapshot.ai_marker?.status === 'warning') issues.push(`IA: ${snapshot.ai_marker?.message}`);
+                if (snapshot.spam_score?.status !== 'success') issues.push(`Spam: ${snapshot.spam_score?.message} (${snapshot.spam_score?.score}/100)`);
+
+                details = issues.join(" | ");
+            } catch (e) {
+                status = "ERREUR LECTURE";
+                details = "Impossible de lire le snapshot de conformité.";
+            }
+
+            return [
+                log.id,
+                new Date(log.sent_at).toLocaleString('fr-FR'),
+                brandName || log.brand_id,
+                `"${log.subject.replace(/"/g, '""')}"`,
+                log.recipient_count,
+                status,
+                `"${details.replace(/"/g, '""')}"`
+            ];
+        });
 
         return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     }

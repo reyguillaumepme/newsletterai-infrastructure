@@ -71,7 +71,9 @@ const GdprRegistryTable: React.FC<GdprRegistryTableProps> = ({ logs, isLoading, 
                             let complianceStatus = 'unknown';
                             try {
                                 const snapshot = JSON.parse(log.compliance_snapshot);
-                                complianceStatus = snapshot.isCompliant ? 'compliant' : 'warning';
+                                if (snapshot.overall_status === 'success') complianceStatus = 'compliant';
+                                else if (snapshot.overall_status === 'warning') complianceStatus = 'warning';
+                                else if (snapshot.overall_status === 'error') complianceStatus = 'error';
                             } catch (e) { }
 
                             return (
@@ -101,6 +103,10 @@ const GdprRegistryTable: React.FC<GdprRegistryTableProps> = ({ logs, isLoading, 
                                         ) : complianceStatus === 'warning' ? (
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold ring-1 ring-orange-100">
                                                 <AlertTriangle size={12} /> Avertissements
+                                            </span>
+                                        ) : complianceStatus === 'error' ? (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-bold ring-1 ring-red-100">
+                                                <AlertTriangle size={12} /> Non Conforme
                                             </span>
                                         ) : (
                                             <span className="text-gray-300">-</span>

@@ -52,14 +52,15 @@ const GdprRegistry: React.FC = () => {
 
     const handleExport = () => {
         if (!logs.length) return;
-        const csvContent = complianceService.exportRegistryToCSV(logs);
+        const selectedBrand = brands.find(b => b.id === selectedBrandId);
+        const csvContent = complianceService.exportRegistryToCSV(logs, selectedBrand?.brand_name);
 
         // Create download link
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `registre_rgpd_${selectedBrandId}_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `registre_rgpd_${selectedBrand?.brand_name || selectedBrandId}_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
