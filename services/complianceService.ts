@@ -256,6 +256,17 @@ export const complianceService = {
             remediation: "N'essayez pas de contourner les filtres en espaçant les lettres, c'est contre-productif."
         });
 
+        // Couleur de texte trop claire (Invisible/Low contrast)
+        const lowContrast = /color\s*:\s*(white|#fff(fff)?|#f[0-9a-f]{2,5}|#e[0-9a-f]{2,5}|rgb\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5]\s*\))/i.test(content);
+        if (lowContrast) { spamScore -= 15; spamDetails.push("Couleur de texte trop claire (-15)"); }
+        spamChecks.push({
+            label: "Contraste du texte suffisant",
+            passed: !lowContrast,
+            penalty: 15,
+            category: catDesign,
+            remediation: "Assurez-vous que votre texte est bien lisible (évitez le blanc ou gris clair sur fond blanc)."
+        });
+
         // Cap score min 0
         spamScore = Math.max(0, spamScore);
 
