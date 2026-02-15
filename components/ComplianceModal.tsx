@@ -134,21 +134,28 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                 {results.spam_score.spam_checks
                                                     .filter(c => c.category === "Objet de l'e-mail (Sujet)")
                                                     .map((check, index) => (
-                                                        <div key={index} className="flex items-start justify-between text-xs">
-                                                            <div className="flex items-start gap-1.5">
-                                                                {check.passed ? (
-                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                ) : (
-                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                        <div key={index} className="mb-2 last:mb-0">
+                                                            <div className="flex items-start justify-between text-xs">
+                                                                <div className="flex items-start gap-1.5">
+                                                                    {check.passed ? (
+                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                    ) : (
+                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                    )}
+                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                        {check.label}
+                                                                    </span>
+                                                                </div>
+                                                                {!check.passed && (
+                                                                    <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                        -{check.penalty}
+                                                                    </span>
                                                                 )}
-                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                    {check.label}
-                                                                </span>
                                                             </div>
-                                                            {!check.passed && (
-                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
-                                                                    -{check.penalty}
-                                                                </span>
+                                                            {!check.passed && check.remediation && (
+                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                    💡 {check.remediation}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     ))}
@@ -162,21 +169,28 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                 {results.spam_score.spam_checks
                                                     .filter(c => c.category === "Technique et Expéditeur")
                                                     .map((check, index) => (
-                                                        <div key={index} className="flex items-start justify-between text-xs">
-                                                            <div className="flex items-start gap-1.5">
-                                                                {check.passed ? (
-                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                ) : (
-                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                        <div key={index} className="mb-2 last:mb-0">
+                                                            <div className="flex items-start justify-between text-xs">
+                                                                <div className="flex items-start gap-1.5">
+                                                                    {check.passed ? (
+                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                    ) : (
+                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                    )}
+                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                        {check.label}
+                                                                    </span>
+                                                                </div>
+                                                                {!check.passed && (
+                                                                    <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                        -{check.penalty}
+                                                                    </span>
                                                                 )}
-                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                    {check.label}
-                                                                </span>
                                                             </div>
-                                                            {!check.passed && (
-                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
-                                                                    -{check.penalty}
-                                                                </span>
+                                                            {!check.passed && check.remediation && (
+                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                    💡 {check.remediation}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     ))}
@@ -193,21 +207,28 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                 {results.spam_score.spam_checks
                                                     .filter(c => c.category === "Corps du message (Contenu HTML)")
                                                     .map((check, index) => (
-                                                        <div key={index} className="flex items-start justify-between text-xs">
-                                                            <div className="flex items-start gap-1.5">
-                                                                {check.passed ? (
-                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                ) : (
-                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                        <div key={index} className="mb-2 last:mb-0">
+                                                            <div className="flex items-start justify-between text-xs">
+                                                                <div className="flex items-start gap-1.5">
+                                                                    {check.passed ? (
+                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                    ) : (
+                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                    )}
+                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                        {check.label}
+                                                                    </span>
+                                                                </div>
+                                                                {!check.passed && (
+                                                                    <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                        -{check.penalty}
+                                                                    </span>
                                                                 )}
-                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                    {check.label}
-                                                                </span>
                                                             </div>
-                                                            {!check.passed && (
-                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
-                                                                    -{check.penalty}
-                                                                </span>
+                                                            {!check.passed && check.remediation && (
+                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                    💡 {check.remediation}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     ))}
@@ -221,21 +242,28 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                 {results.spam_score.spam_checks
                                                     .filter(c => c.category === "Mise en forme et Lisibilité")
                                                     .map((check, index) => (
-                                                        <div key={index} className="flex items-start justify-between text-xs">
-                                                            <div className="flex items-start gap-1.5">
-                                                                {check.passed ? (
-                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                ) : (
-                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                        <div key={index} className="mb-2 last:mb-0">
+                                                            <div className="flex items-start justify-between text-xs">
+                                                                <div className="flex items-start gap-1.5">
+                                                                    {check.passed ? (
+                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                    ) : (
+                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                    )}
+                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                        {check.label}
+                                                                    </span>
+                                                                </div>
+                                                                {!check.passed && (
+                                                                    <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                        -{check.penalty}
+                                                                    </span>
                                                                 )}
-                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                    {check.label}
-                                                                </span>
                                                             </div>
-                                                            {!check.passed && (
-                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
-                                                                    -{check.penalty}
-                                                                </span>
+                                                            {!check.passed && check.remediation && (
+                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                    💡 {check.remediation}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     ))}
