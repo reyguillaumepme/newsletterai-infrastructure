@@ -621,6 +621,7 @@ const NewsletterDetail: React.FC = () => {
     const results = complianceService.runAudit(newsletterToAudit, brand);
     setComplianceResults(results);
     setForceImmediateSend(forceImmediate);
+    setShowPublishModal(false); // Close the publish/contacts modal
     setShowComplianceModal(true);
   };
 
