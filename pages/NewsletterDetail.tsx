@@ -54,7 +54,8 @@ import { generateNewsletterHook } from '../services/geminiService';
 import { Newsletter, Idea, Brand, StructuredStrategy, StrategyCTA, Contact } from '../types';
 import UpgradeModal from '../components/UpgradeModal';
 import AlertModal from '../components/AlertModal';
-
+import ComplianceModal from '../components/ComplianceModal';
+import { complianceService } from '../services/complianceService';
 const QUILL_MODULES = {
   toolbar: [
     [{ 'font': [false, 'serif', 'monospace'] }, { 'size': ['small', false, 'large', 'huge'] }],
@@ -141,6 +142,11 @@ const NewsletterDetail: React.FC = () => {
   const [footerValue, setFooterValue] = useState('');
   const [footerHtmlMode, setFooterHtmlMode] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Compliance State
+  const [showComplianceModal, setShowComplianceModal] = useState(false);
+  const [complianceResults, setComplianceResults] = useState<any>(null);
+  const [forceImmediateSend, setForceImmediateSend] = useState(false);
 
   const generateDefaultFooter = (brandName: string) => {
     return `
@@ -594,6 +600,26 @@ const NewsletterDetail: React.FC = () => {
   };
 
 
+
+  const handleSubmitForCompliance = (forceImmediate: boolean = false) => {
+    if (!newsletter) return;
+
+    // 1. Run Audit with CURRENT content (including footer state or default)
+    const effectiveFooter = footerValue || generateDefaultFooter(brand?.brand_name || 'NewsletterAI');
+    const newsletterToAudit = { ...newsletter, footer_content: effectiveFooter };
+
+    const results = complianceService.runAudit(newsletterToAudit, brand);
+    setComplianceResults(results);
+    setForceImmediateSend(forceImmediate);
+    setShowComplianceModal(true);
+  };
+
+  const handleConfirmCompliance = async () => {
+    // User confirmed in modal
+    await handlePublish(forceImmediateSend);
+    setShowComplianceModal(false);
+  };
+
   const handlePublish = async (forceImmediate: boolean = false) => {
     if (!newsletter) return; // Removed selection check
 
@@ -622,6 +648,18 @@ const NewsletterDetail: React.FC = () => {
       setPublishReport({ success: result.success.length, failed: result.failed.length });
       setPublishSuccess(true);
 
+      // Log Compliance Event to DB if needed per plan
+      if (brand && newsletter) {
+        await databaseService.logComplianceEvent({
+          brand_id: brand.id,
+          newsletter_id: newsletter.id,
+          sent_at: new Date().toISOString(),
+          recipient_count: recipientsToSend.length,
+          subject: newsletter.subject,
+          compliance_snapshot: JSON.stringify(complianceResults)
+        });
+      }
+
       setTimeout(() => {
         setShowPublishModal(false);
         setPublishSuccess(false);
@@ -631,6 +669,8 @@ const NewsletterDetail: React.FC = () => {
       console.error('Error publishing newsletter:', error);
       setAlertState({ isOpen: true, message: 'Erreur lors de l\'envoi: ' + (error.message || 'Erreur inconnue'), type: 'error' });
       setPublishReport(null);
+      // Close compliance modal if error occurs during send to avoid stuck state
+      setShowComplianceModal(false);
     } finally {
       setIsPublishing(false);
     }
@@ -1081,6 +1121,18 @@ const NewsletterDetail: React.FC = () => {
       }
 
       {
+        showComplianceModal && (
+          <ComplianceModal
+            isOpen={showComplianceModal}
+            onClose={() => setShowComplianceModal(false)}
+            onConfirm={handleConfirmCompliance}
+            results={complianceResults}
+            isSending={isPublishing}
+          />
+        )
+      }
+
+      {
         showPublishModal && (
           <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-xl z-[400] flex items-center justify-center p-6">
             <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
@@ -1162,7 +1214,7 @@ const NewsletterDetail: React.FC = () => {
                     </button>
                     <div className="flex-1 group relative">
                       <button
-                        onClick={() => handlePublish(true)}
+                        onClick={() => handleSubmitForCompliance(true)}
                         disabled={isPublishing || publishSuccess || newsletter?.status === 'scheduled'}
                         className="w-full px-6 py-3 bg-primary text-gray-950 rounded-2xl font-black uppercase hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >

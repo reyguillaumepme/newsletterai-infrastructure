@@ -51,6 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
     { name: 'Idées', icon: Lightbulb, path: '/ideas' },
     { name: 'Marques', icon: Briefcase, path: '/brands' },
     { name: 'Statistiques', icon: BarChart3, path: '/statistics' },
+    { name: 'Conformité', icon: ShieldCheck, path: '/compliance' },
 
   ];
 

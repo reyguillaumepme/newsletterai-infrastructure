@@ -16,6 +16,8 @@ import Unsubscribe from './pages/Unsubscribe';
 import LandingPage from './pages/LandingPage';
 import Profile from './pages/Profile';
 import SubscribePage from './pages/SubscribePage';
+import Tutorial from './pages/Tutorial';
+import GdprRegistry from './pages/GdprRegistry';
 import { authService, getSupabaseClient } from './services/authService';
 import { databaseService } from './services/databaseService';
 
@@ -140,6 +142,8 @@ const App: React.FC = () => {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/compliance" element={<GdprRegistry />} />
+                    <Route path="/tutorial" element={<Tutorial />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </React.Suspense>

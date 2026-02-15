@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useTransition } from 'react';
-import { Mail, CheckCircle, Percent, Plus, Loader2, ArrowRight, Briefcase } from 'lucide-react';
+import { Mail, CheckCircle, Percent, Plus, Loader2, ArrowRight, Briefcase, BookOpen } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import StatCard from '../components/StatCard';
 import { databaseService } from '../services/databaseService';
@@ -170,11 +170,11 @@ const Dashboard: React.FC = () => {
           <p className="text-gray-500">Vue d'ensemble de votre activité.</p>
         </div>
         <button
-          onClick={() => startTransition(() => navigate('/newsletters/new'))}
+          onClick={() => startTransition(() => navigate('/tutorial'))}
           className="bg-primary hover:bg-[#ffca28] text-gray-900 px-6 py-3 rounded-2xl font-bold flex items-center shadow-lg transition-all hover:-translate-y-1 active:scale-95"
         >
-          <Plus size={20} className="mr-2" />
-          Nouvelle newsletter
+          <BookOpen size={20} className="mr-2" />
+          Tutoriel d'utilisation
         </button>
       </div>
 

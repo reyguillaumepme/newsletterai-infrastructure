@@ -127,3 +127,23 @@ export interface Statistics {
   brand_logo?: string;
   brand_name?: string;
 }
+
+export type ComplianceCheckStatus = 'success' | 'warning' | 'error';
+
+export interface ComplianceCheckResult {
+  mentions: { status: ComplianceCheckStatus; message: string };
+  unsubscribe: { status: ComplianceCheckStatus; message: string };
+  ai_marker: { status: ComplianceCheckStatus; message: string };
+  spam_score: { score: number; status: ComplianceCheckStatus; message: string };
+  overall_status: ComplianceCheckStatus;
+}
+
+export interface ComplianceLog {
+  id: string;
+  brand_id: string;
+  newsletter_id: string;
+  sent_at: string;
+  recipient_count: number;
+  subject: string;
+  compliance_snapshot: string; // JSON string of ComplianceCheckResult
+}

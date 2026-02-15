@@ -679,5 +679,44 @@ export const databaseService = {
       const brand = await this.createBrand({ brand_name: "AI Trends Weekly", description: "Focus IA.", target_audience: "Entrepreneurs", editorial_tone: "Expert" });
       await this.createIdea({ brand_id: brand.id, title: "Gemini 3.0", content: "Capabilities analysis.", source: "YouTube", source_type: "youtube", order_index: 0 });
     } catch (e) { }
+  },
+
+  async logComplianceEvent(log: Partial<import('../types').ComplianceLog>): Promise<void> {
+    if (!isUsingCloud()) {
+      const newItem = { ...log, id: storage.generateId() };
+      storage.set('compliance_logs', [...(storage.get('compliance_logs') || []), newItem]);
+      return;
+    }
+    const { url, key } = getSupabaseConfig();
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const headers = await getHeaders(key);
+
+    // Pour le MVP Cloud sans migration DB, on stocke dans une table 'events' générique ou on simule
+    // Option: Utiliser une table existante ou créer une table dédiée. 
+    // Pour rester simple sans migration complexe ici, on va supposer que la table 'compliance_logs' existe.
+    // Si elle n'existe pas, l'appel échouera silencieusement dans le catch (acceptable pour MVP)
+    try {
+      await fetch(`${baseUrl}/rest/v1/compliance_logs`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(log)
+      });
+    } catch (e) {
+      console.warn("Compliance Log failed (Table missing?):", e);
+    }
+  },
+
+  async fetchComplianceLogs(brandId: string): Promise<import('../types').ComplianceLog[]> {
+    if (!isUsingCloud()) {
+      return (storage.get('compliance_logs') || []).filter((l: any) => l.brand_id === brandId)
+        .sort((a: any, b: any) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime());
+    }
+    const { url, key } = getSupabaseConfig();
+    const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    const headers = await getHeaders(key);
+    try {
+      const res = await fetch(`${baseUrl}/rest/v1/compliance_logs?brand_id=eq.${brandId}&order=sent_at.desc`, { headers });
+      return res.ok ? await res.json() : [];
+    } catch (e) { return []; }
   }
 };
