@@ -126,12 +126,41 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                             {results.spam_score.spam_checks && (
                                 <div className="grid grid-cols-2 gap-4 bg-white/50 p-3 rounded-lg">
                                     {/* Colonne 1 : Sujet + Technique */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
+                                        {/* 1. Objet */}
                                         <div>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">1. Objet & 3. Technique</p>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">1. Objet de l'e-mail</p>
                                             <div className="space-y-1">
                                                 {results.spam_score.spam_checks
-                                                    .filter(c => c.category === "Objet de l'e-mail (Sujet)" || c.category === "Technique et Expéditeur")
+                                                    .filter(c => c.category === "Objet de l'e-mail (Sujet)")
+                                                    .map((check, index) => (
+                                                        <div key={index} className="flex items-start justify-between text-xs">
+                                                            <div className="flex items-start gap-1.5">
+                                                                {check.passed ? (
+                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                ) : (
+                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                )}
+                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                    {check.label}
+                                                                </span>
+                                                            </div>
+                                                            {!check.passed && (
+                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                    -{check.penalty}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Technique */}
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">3. Technique & Expéditeur</p>
+                                            <div className="space-y-1">
+                                                {results.spam_score.spam_checks
+                                                    .filter(c => c.category === "Technique et Expéditeur")
                                                     .map((check, index) => (
                                                         <div key={index} className="flex items-start justify-between text-xs">
                                                             <div className="flex items-start gap-1.5">
@@ -155,13 +184,42 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                         </div>
                                     </div>
 
-                                    {/* Colonne 2 : Contenu + Design */}
-                                    <div className="space-y-4">
+                                    {/* Colonne 2 : Contenu & Design */}
+                                    <div className="space-y-6">
+                                        {/* 2. Contenu */}
                                         <div>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">2. Contenu & 4. Design</p>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">2. Contenu du message</p>
                                             <div className="space-y-1">
                                                 {results.spam_score.spam_checks
-                                                    .filter(c => c.category === "Corps du message (Contenu HTML)" || c.category === "Mise en forme et Lisibilité")
+                                                    .filter(c => c.category === "Corps du message (Contenu HTML)")
+                                                    .map((check, index) => (
+                                                        <div key={index} className="flex items-start justify-between text-xs">
+                                                            <div className="flex items-start gap-1.5">
+                                                                {check.passed ? (
+                                                                    <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                ) : (
+                                                                    <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                )}
+                                                                <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                    {check.label}
+                                                                </span>
+                                                            </div>
+                                                            {!check.passed && (
+                                                                <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
+                                                                    -{check.penalty}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Design */}
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">4. Mise en forme</p>
+                                            <div className="space-y-1">
+                                                {results.spam_score.spam_checks
+                                                    .filter(c => c.category === "Mise en forme et Lisibilité")
                                                     .map((check, index) => (
                                                         <div key={index} className="flex items-start justify-between text-xs">
                                                             <div className="flex items-start gap-1.5">
