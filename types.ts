@@ -95,6 +95,7 @@ export interface Newsletter {
   show_footer_logo?: boolean;
   show_ai_transparency?: boolean;
   brevo_campaign_id?: number;
+  content?: string; // Full HTML content for audit/send
   brands?: { brand_name: string; logo_url?: string }; // Embedded brand data from join
 }
 

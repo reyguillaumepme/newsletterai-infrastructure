@@ -5,7 +5,8 @@ export const complianceService = {
      * Analyse le contenu de la newsletter pour vérifier la conformité.
      */
     runAudit(newsletter: Newsletter, brand: Brand | null): ComplianceCheckResult {
-        const content = (newsletter.generated_content || '') + (newsletter.footer_content || '');
+        // We use .content as priority (passed from NewsletterDetail as full HTML)
+        const content = newsletter.content || (newsletter.generated_content || '') + (newsletter.footer_content || '');
         const subject = newsletter.subject || '';
 
         // 1. Mentions Légales
@@ -207,7 +208,8 @@ export const complianceService = {
         });
 
         // Ponctuation excessive dans le corps
-        const excessivePuncContent = /[!?.]{3,}/.test(content);
+        const textOnlyForSpam = content.replace(/<[^>]*>/g, ' ');
+        const excessivePuncContent = /[!?.]{3,}/.test(textOnlyForSpam);
         if (excessivePuncContent) { spamScore -= 10; spamDetails.push("Ponctuation excessive dans le corps (-10)"); }
         spamChecks.push({
             label: "Pas de ponctuation excessive (!!!, ???)",
@@ -218,7 +220,7 @@ export const complianceService = {
         });
 
         // Symboles monétaires répétés dans le corps
-        const excessiveMoneyContent = /[$€£]{3,}/.test(content);
+        const excessiveMoneyContent = /[$€£]{3,}/.test(textOnlyForSpam);
         if (excessiveMoneyContent) { spamScore -= 10; spamDetails.push("Symboles monétaires répétés dans le corps (-10)"); }
         spamChecks.push({
             label: "Pas de symboles monétaires répétés ($$$, €€€)",
