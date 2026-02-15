@@ -56,6 +56,7 @@ import { Newsletter, Idea, Brand, StructuredStrategy, StrategyCTA, Contact } fro
 import UpgradeModal from '../components/UpgradeModal';
 import AlertModal from '../components/AlertModal';
 import ComplianceModal from '../components/ComplianceModal';
+import IdeaEditModal from '../components/IdeaEditModal';
 import { complianceService } from '../services/complianceService';
 const QUILL_MODULES = {
   toolbar: [
@@ -618,7 +619,7 @@ const NewsletterDetail: React.FC = () => {
       show_ai_transparency: newsletter.show_ai_transparency
     };
 
-    const results = complianceService.runAudit(newsletterToAudit, brand);
+    const results = complianceService.runAudit(newsletterToAudit, brand, ideas);
     setComplianceResults(results);
     setForceImmediateSend(forceImmediate);
     setShowPublishModal(false); // Close the publish/contacts modal
@@ -875,18 +876,28 @@ const NewsletterDetail: React.FC = () => {
                         <GripVertical size={20} />
                       </div>
                     )}
-                    {!isSent && (
+                    <div className="absolute right-3 top-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectIdea(idea);
+                        }}
+                        className="p-2 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-100"
+                        title="Modifier cet article"
+                      >
+                        <Wand2 size={16} />
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRemoveIdea(idea.id);
                         }}
-                        className="absolute right-3 top-3 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-100 z-10"
+                        className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"
                         title="Supprimer cet article"
                       >
                         <Trash2 size={16} />
                       </button>
-                    )}
+                    </div>
                     <div className={`w-28 h-28 shrink-0 rounded-2xl overflow-hidden bg-gray-50 ${isSent ? '' : 'ml-6'}`}>
                       {idea.image_url ? <img src={idea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={28} /></div>}
                     </div>
@@ -1144,19 +1155,19 @@ const NewsletterDetail: React.FC = () => {
         )
       }
 
-      {
-        selectedIdea && (
-          <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-md z-[150] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-5xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
-              <div className="relative h-64 shrink-0">
-                {selectedIdea.image_url ? <img src={selectedIdea.image_url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><ImageIcon size={64} /></div>}
-                <button onClick={() => startTransition(() => setSelectedIdea(null))} className="absolute top-6 right-6 p-3 bg-white/20 rounded-full text-white"><X size={24} /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedIdea.content || '' }} />
-            </div>
-          </div>
-        )
-      }
+      {selectedIdea && (
+        <IdeaEditModal
+          idea={selectedIdea}
+          brands={brands}
+          userProfile={userProfile}
+          setUserProfile={setUserProfile}
+          onSave={async (updatedIdea) => {
+            await loadData();
+            setSelectedIdea(null);
+          }}
+          onClose={() => setSelectedIdea(null)}
+        />
+      )}
 
       {
         showComplianceModal && (

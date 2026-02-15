@@ -136,15 +136,32 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                     .map((check, index) => (
                                                         <div key={index} className="mb-2 last:mb-0">
                                                             <div className="flex items-start justify-between text-xs">
-                                                                <div className="flex items-start gap-1.5">
-                                                                    {check.passed ? (
-                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                    ) : (
-                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 flex-1">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        {check.passed ? (
+                                                                            <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                        ) : (
+                                                                            <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                        )}
+                                                                        <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                            {check.label}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {!check.passed && (
+                                                                        <div className="ml-5 flex flex-wrap gap-1">
+                                                                            {check.location && (
+                                                                                <span className="text-[8px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                                    {check.location}
+                                                                                </span>
+                                                                            )}
+                                                                            {check.matches?.map((match, mi) => (
+                                                                                <span key={mi} className="text-[8px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-black">
+                                                                                    "{match}"
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
                                                                     )}
-                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                        {check.label}
-                                                                    </span>
                                                                 </div>
                                                                 {!check.passed && (
                                                                     <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
@@ -153,7 +170,7 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                                 )}
                                                             </div>
                                                             {!check.passed && check.remediation && (
-                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                <p className="text-[10px] text-gray-400 italic ml-5 mt-1 border-l-2 border-gray-100 pl-2 py-0.5">
                                                                     💡 {check.remediation}
                                                                 </p>
                                                             )}
@@ -171,15 +188,32 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                     .map((check, index) => (
                                                         <div key={index} className="mb-2 last:mb-0">
                                                             <div className="flex items-start justify-between text-xs">
-                                                                <div className="flex items-start gap-1.5">
-                                                                    {check.passed ? (
-                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                    ) : (
-                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 flex-1">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        {check.passed ? (
+                                                                            <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                        ) : (
+                                                                            <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                        )}
+                                                                        <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                            {check.label}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {!check.passed && (
+                                                                        <div className="ml-5 flex flex-wrap gap-1">
+                                                                            {check.location && (
+                                                                                <span className="text-[8px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                                    {check.location}
+                                                                                </span>
+                                                                            )}
+                                                                            {check.matches?.map((match, mi) => (
+                                                                                <span key={mi} className="text-[8px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-black">
+                                                                                    "{match}"
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
                                                                     )}
-                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                        {check.label}
-                                                                    </span>
                                                                 </div>
                                                                 {!check.passed && (
                                                                     <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
@@ -188,7 +222,7 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                                 )}
                                                             </div>
                                                             {!check.passed && check.remediation && (
-                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                <p className="text-[10px] text-gray-400 italic ml-5 mt-1 border-l-2 border-gray-100 pl-2 py-0.5">
                                                                     💡 {check.remediation}
                                                                 </p>
                                                             )}
@@ -209,15 +243,32 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                     .map((check, index) => (
                                                         <div key={index} className="mb-2 last:mb-0">
                                                             <div className="flex items-start justify-between text-xs">
-                                                                <div className="flex items-start gap-1.5">
-                                                                    {check.passed ? (
-                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                    ) : (
-                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 flex-1">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        {check.passed ? (
+                                                                            <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                        ) : (
+                                                                            <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                        )}
+                                                                        <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                            {check.label}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {!check.passed && (
+                                                                        <div className="ml-5 flex flex-wrap gap-1">
+                                                                            {check.location && (
+                                                                                <span className="text-[8px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                                    {check.location}
+                                                                                </span>
+                                                                            )}
+                                                                            {check.matches?.map((match, mi) => (
+                                                                                <span key={mi} className="text-[8px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-black">
+                                                                                    "{match}"
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
                                                                     )}
-                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                        {check.label}
-                                                                    </span>
                                                                 </div>
                                                                 {!check.passed && (
                                                                     <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
@@ -226,7 +277,7 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                                 )}
                                                             </div>
                                                             {!check.passed && check.remediation && (
-                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                <p className="text-[10px] text-gray-400 italic ml-5 mt-1 border-l-2 border-gray-100 pl-2 py-0.5">
                                                                     💡 {check.remediation}
                                                                 </p>
                                                             )}
@@ -244,15 +295,32 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                     .map((check, index) => (
                                                         <div key={index} className="mb-2 last:mb-0">
                                                             <div className="flex items-start justify-between text-xs">
-                                                                <div className="flex items-start gap-1.5">
-                                                                    {check.passed ? (
-                                                                        <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
-                                                                    ) : (
-                                                                        <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                <div className="flex flex-col gap-1 flex-1">
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        {check.passed ? (
+                                                                            <CheckCircle size={12} className="text-green-600 mt-0.5 shrink-0" />
+                                                                        ) : (
+                                                                            <AlertTriangle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                                                                        )}
+                                                                        <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
+                                                                            {check.label}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {!check.passed && (
+                                                                        <div className="ml-5 flex flex-wrap gap-1">
+                                                                            {check.location && (
+                                                                                <span className="text-[8px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                                                    {check.location}
+                                                                                </span>
+                                                                            )}
+                                                                            {check.matches?.map((match, mi) => (
+                                                                                <span key={mi} className="text-[8px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-black">
+                                                                                    "{match}"
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
                                                                     )}
-                                                                    <span className={`leading-tight ${check.passed ? 'text-gray-600' : 'text-red-600 font-medium'}`}>
-                                                                        {check.label}
-                                                                    </span>
                                                                 </div>
                                                                 {!check.passed && (
                                                                     <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1 py-0.5 rounded ml-1 shrink-0">
@@ -261,7 +329,7 @@ const ComplianceModal: React.FC<ComplianceModalProps> = ({ isOpen, onClose, onCo
                                                                 )}
                                                             </div>
                                                             {!check.passed && check.remediation && (
-                                                                <p className="text-[10px] text-gray-500 italic ml-5 mt-0.5">
+                                                                <p className="text-[10px] text-gray-400 italic ml-5 mt-1 border-l-2 border-gray-100 pl-2 py-0.5">
                                                                     💡 {check.remediation}
                                                                 </p>
                                                             )}

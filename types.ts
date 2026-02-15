@@ -136,7 +136,7 @@ export interface ComplianceCheckResult {
   mentions: { status: ComplianceCheckStatus; message: string };
   unsubscribe: { status: ComplianceCheckStatus; message: string };
   ai_marker: { status: ComplianceCheckStatus; message: string };
-  spam_score: { score: number; status: ComplianceCheckStatus; message: string; details?: string[]; spam_checks?: { label: string; passed: boolean; penalty: number; category: string; remediation?: string }[] };
+  spam_score: { score: number; status: ComplianceCheckStatus; message: string; details?: string[]; spam_checks?: { label: string; passed: boolean; penalty: number; category: string; remediation?: string; location?: string; matches?: string[] }[] };
   overall_status: ComplianceCheckStatus;
 }
 

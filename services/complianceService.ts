@@ -1,19 +1,25 @@
-import { Newsletter, Brand, ComplianceCheckResult, ComplianceLog } from '../types';
+import { Newsletter, Brand, ComplianceCheckResult, ComplianceLog, Idea } from '../types';
 
 export const complianceService = {
     /**
      * Analyse le contenu de la newsletter pour vérifier la conformité.
      */
-    runAudit(newsletter: Newsletter, brand: Brand | null): ComplianceCheckResult {
+    runAudit(newsletter: Newsletter, brand: Brand | null, ideas: Idea[] = []): ComplianceCheckResult {
         // We use .content as priority (passed from NewsletterDetail as full HTML)
-        const content = newsletter.content || (newsletter.generated_content || '') + (newsletter.footer_content || '');
+        const fullContent = newsletter.content || (newsletter.generated_content || '') + (newsletter.footer_content || '');
         const subject = newsletter.subject || '';
 
+        // Définition des blocs à analyser individuellement
+        const components = [
+            { id: 'subject', name: "Sujet", content: subject, isHtml: false },
+            { id: 'hook', name: "Texte d'accroche", content: newsletter.generated_content || '', isHtml: true },
+            ...ideas.map(idea => ({ id: `idea-${idea.id}`, name: `Idée: ${idea.title}`, content: (idea.title + " " + idea.content), isHtml: true })),
+            { id: 'footer', name: "Footer", content: newsletter.footer_content || '', isHtml: true }
+        ];
+
         // 1. Mentions Légales
-        // On cherche le nom de la marque ou une adresse physique dans le footer
-        const hasBrandName = brand?.brand_name ? content.includes(brand.brand_name) : false;
-        // Vérification basique de présence d'un footer (souvent détecté par des mots clés comme "droits réservés", "copyright", "envoyé par")
-        const hasLegalFooter = /droit|réservé|copyright|envoyé par|address|adresse/i.test(content);
+        const hasBrandName = brand?.brand_name ? fullContent.includes(brand.brand_name) : false;
+        const hasLegalFooter = /droit|réservé|copyright|envoyé par|address|adresse/i.test(fullContent);
 
         const mentionsStatus = (hasBrandName || hasLegalFooter) ? 'success' : 'error';
         const mentionsMessage = mentionsStatus === 'success'
@@ -21,10 +27,8 @@ export const complianceService = {
             : "Aucune mention légale ou nom de marque détecté dans le footer.";
 
         // 2. Lien de désabonnement
-        // On cherche "unsubscribe", "désabonner", "desabonner"
-        const hasUnsubscribe = /unsubscribe|désabonner|desabonner|si vous ne souhaitez plus recevoir/i.test(content);
-        // Ou la variable {{unsubscribe_url}} de Brevo
-        const hasBrevoVar = content.includes('{{unsubscribe_url}}') || content.includes('{{ mirror }}'); // mirror often goes with unsub
+        const hasUnsubscribe = /unsubscribe|désabonner|desabonner|si vous ne souhaitez plus recevoir/i.test(fullContent);
+        const hasBrevoVar = fullContent.includes('{{unsubscribe_url}}') || fullContent.includes('{{ mirror }}');
 
         const unsubStatus = (hasUnsubscribe || hasBrevoVar) ? 'success' : 'error';
         const unsubMessage = unsubStatus === 'success'
@@ -32,144 +36,149 @@ export const complianceService = {
             : "Lien de désabonnement manquant (obligatoire).";
 
         // 3. Marqueur IA (AI Act - Transparence)
-        // On encourage la transparence. Ce n'est pas encore strictement bloquant partout, mais recommandé.
         const aiKeywords = ["généré par ia", "assisté par ia", "artificial intelligence", "ia", "ai assistant", "contenu automatisé", "intelligence artificielle"];
-        const hasAiMarker = (newsletter.show_ai_transparency === true) || aiKeywords.some(kw => content.toLowerCase().includes(kw));
+        const hasAiMarker = (newsletter.show_ai_transparency === true) || aiKeywords.some(kw => fullContent.toLowerCase().includes(kw));
 
         const aiStatus = hasAiMarker ? 'success' : 'warning';
         const aiMessage = hasAiMarker
             ? "Transparence IA respectée."
             : "Aucune mention 'IA' détectée. Recommandé pour la transparence (AI Act).";
 
-        // 4. Score de Spam (Analyse complète)
-        let spamScore = 100; // 100 = Parfait, 0 = Spam
+        // 4. Score de Spam
+        let spamScore = 100;
         const spamDetails: string[] = [];
-        const spamChecks: { label: string; passed: boolean; penalty: number; category: string; remediation?: string }[] = [];
-
-        const subjectLower = subject.toLowerCase();
-        const contentLower = content.toLowerCase();
+        const spamChecks: { label: string; passed: boolean; penalty: number; category: string; remediation?: string; location?: string; matches?: string[] }[] = [];
 
         // --- 1. Objet de l'e-mail (Sujet) ---
         const catSubject = "Objet de l'e-mail (Sujet)";
 
         // Majuscules intégrales
-        const isAllCaps = subject && subject === subject.toUpperCase() && subject.length > 5;
-        if (isAllCaps) { spamScore -= 20; spamDetails.push("Sujet en majuscules (-20)"); }
+        const isAllCaps = subject && subject === subject.toUpperCase() && subject.replace(/[^a-z]/gi, '').length > 5;
+        if (isAllCaps) { spamScore -= 20; }
         spamChecks.push({
             label: "Pas de majuscules intégrales",
             passed: !isAllCaps,
             penalty: 20,
             category: catSubject,
+            location: "Sujet",
             remediation: "Écrivez votre sujet en minuscules (sauf la première lettre) pour ne pas crier."
         });
 
         // Ponctuation excessive
-        const excessivePunc = /[!?.]{3,}/.test(subject);
-        if (excessivePunc) { spamScore -= 15; spamDetails.push("Ponctuation excessive (-15)"); }
+        const excessivePuncMatch = subject.match(/[!?.]{3,}/g);
+        if (excessivePuncMatch) { spamScore -= 15; }
         spamChecks.push({
             label: "Pas de ponctuation excessive (!!!, ???)",
-            passed: !excessivePunc,
+            passed: !excessivePuncMatch,
             penalty: 15,
             category: catSubject,
+            location: "Sujet",
+            matches: excessivePuncMatch ? Array.from(new Set(excessivePuncMatch)) : undefined,
             remediation: "Limitez la ponctuation à un seul signe à la fois (! ou ?)."
         });
 
         // Caractères monétaires
-        const excessiveMoney = /[$€£]{2,}/.test(subject);
-        if (excessiveMoney) { spamScore -= 15; spamDetails.push("Symboles monétaires répétés (-15)"); }
+        const moneyMatch = subject.match(/[$€£]{2,}/g);
+        if (moneyMatch) { spamScore -= 15; }
         spamChecks.push({
-            label: "Pas de symboles monétaires répétés ($$$, €€€)",
-            passed: !excessiveMoney,
+            label: "Pas de symboles monétaires répétés",
+            passed: !moneyMatch,
             penalty: 15,
             category: catSubject,
+            location: "Sujet",
+            matches: moneyMatch ? Array.from(new Set(moneyMatch)) : undefined,
             remediation: "Évitez d'utiliser plusieurs symboles de devise à la suite."
-        });
-
-        // Mots-clés interdits
-        const forbiddenKeywords = ["gratuit", "free", "promo", "gagnez", "cash", "winner"];
-        let keywordPenalty = 0;
-        const foundKeywords = forbiddenKeywords.filter(kw => subjectLower.includes(kw));
-        if (foundKeywords.length > 0) {
-            keywordPenalty = foundKeywords.length * 10;
-            spamScore -= keywordPenalty;
-            spamDetails.push(`Mots-clés interdits: ${foundKeywords.join(', ')} (-${keywordPenalty})`);
-        }
-        spamChecks.push({
-            label: "Absence de mots-clés spam (Gratuit, Promo...)",
-            passed: foundKeywords.length === 0,
-            penalty: 10,
-            category: catSubject,
-            remediation: `Retirez ou remplacez les mots suivants : ${foundKeywords.join(', ')}.`
         });
 
         // Urgence factice
         const urgencyKeywords = ["urgent", "immédiat", "action requise", "vite"];
-        const foundUrgency = urgencyKeywords.filter(kw => subjectLower.includes(kw));
-        if (foundUrgency.length > 0) { spamScore -= 10; spamDetails.push("Urgence factice détectée (-10)"); }
+        const foundUrgency = urgencyKeywords.filter(kw => subject.toLowerCase().includes(kw));
+        if (foundUrgency.length > 0) { spamScore -= 10; }
         spamChecks.push({
             label: "Pas d'urgence factice (Urgent, Vite...)",
             passed: foundUrgency.length === 0,
             penalty: 10,
             category: catSubject,
-            remediation: foundUrgency.length > 0
-                ? `Mots détectés : ${foundUrgency.map(w => `"${w}"`).join(', ')}. Évitez ces termes qui créent une fausse urgence.`
-                : "Évitez les termes créant une fausse urgence, les filtres antispam les détestent."
+            location: "Sujet",
+            matches: foundUrgency.length > 0 ? foundUrgency : undefined,
+            remediation: "Évitez les termes créant une fausse urgence."
         });
 
-        // Re: / Fwd:
+        // Emojis dans le sujet
+        const subjectEmojiCount = (subject.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) || []).length;
+        const subjectFirstEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(subject);
+        const badEmojiSubject = subjectEmojiCount > 2 || subjectFirstEmoji;
+        if (badEmojiSubject) { spamScore -= 5; }
+        spamChecks.push({
+            label: "Usage modéré d'emojis (Sujet)",
+            passed: !badEmojiSubject,
+            penalty: 5,
+            category: catSubject,
+            location: "Sujet",
+            remediation: "Utilisez max 1 emoji et évitez d'en mettre en tout début de sujet."
+        });
+
+        // Préfixe trompeur
         const fakeRe = /^(re:|fwd:)/i.test(subject);
-        if (fakeRe) { spamScore -= 20; spamDetails.push("Préfixe trompeur Re:/Fwd: (-20)"); }
+        if (fakeRe) { spamScore -= 20; }
         spamChecks.push({
             label: "Pas de préfixe trompeur (Re:, Fwd:)",
             passed: !fakeRe,
             penalty: 20,
             category: catSubject,
+            location: "Sujet",
             remediation: "Ne simulez pas une réponse ou un transfert, c'est une technique de spam connue."
         });
 
-        // Emojis
-        const emojiCount = (subject.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) || []).length;
-        const firstCharEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(subject);
-        if (emojiCount > 2 || firstCharEmoji) { spamScore -= 5; spamDetails.push("Abus d'emojis (-5)"); }
+        // Mots espacés (G.R.A.T.U.I.T)
+        const spacedWords = /\b[A-Z]\s[A-Z]\s[A-Z]\s[A-Z]\b|\b[A-Z]\.[A-Z]\.[A-Z]\.[A-Z]\b/.test(subject);
+        if (spacedWords) { spamScore -= 20; }
         spamChecks.push({
-            label: "Usage modéré d'emojis (< 2, pas en début)",
-            passed: !(emojiCount > 2 || firstCharEmoji),
-            penalty: 5,
+            label: "Pas de mots espacés (G.R.A.T.U.I.T)",
+            passed: !spacedWords,
+            penalty: 20,
             category: catSubject,
-            remediation: "Utilisez au maximum 1 emoji et jamais en début de sujet."
+            location: "Sujet",
+            remediation: "N'essayez pas de contourner les filtres en espaçant les lettres."
         });
 
         // --- 2. Corps du message (Contenu HTML) ---
         const catContent = "Corps du message (Contenu HTML)";
 
+        // Mots-clés interdits & Urgence (Sur tous les composants)
+        const forbiddenKeywords = ["gratuit", "free", "promo", "gagnez", "cash", "winner", "cadeau", "urgent", "immédiat", "vite", "cliquez ici", "click here"];
+        const foundKeywords: { word: string; loc: string }[] = [];
 
-        // Raccourcisseurs URL
-        const hasShortener = /bit\.ly|tinyurl\.com|goo\.gl|ow\.ly/.test(content);
-        if (hasShortener) { spamScore -= 25; spamDetails.push("Raccourcisseur d'URL détecté (-25)"); }
-        spamChecks.push({
-            label: "Pas de raccourcisseurs d'URL (Bitly...)",
-            passed: !hasShortener,
-            penalty: 25,
-            category: catContent,
-            remediation: "Utilisez vos liens complets. Les raccourcisseurs masquent la destination et sont bloqués."
+        components.forEach(comp => {
+            const cleanText = comp.isHtml ? comp.content.replace(/<[^>]*>/g, ' ') : comp.content;
+            const lowerText = cleanText.toLowerCase();
+            forbiddenKeywords.forEach(kw => {
+                if (lowerText.includes(kw)) {
+                    foundKeywords.push({ word: kw, loc: comp.name });
+                }
+            });
         });
 
-        // Ratio Image / Texte (Approximation: < 500 chars et > 2 images => suspect)
-        const imgCount = (content.match(/<img/g) || []).length;
-        const textLength = content.replace(/<[^>]*>/g, '').length;
-        const badRatio = imgCount > 2 && textLength < 500;
-        if (badRatio) { spamScore -= 20; spamDetails.push("Ratio Image/Texte déséquilibré (-20)"); }
-        spamChecks.push({
-            label: "Ratio Texte/Image équilibré",
-            passed: !badRatio,
-            penalty: 20,
-            category: catContent,
-            remediation: "Ajoutez plus de texte. Un email avec trop d'images et peu de texte ressemble à du spam."
-        });
+        if (foundKeywords.length > 0) {
+            const uniqueWords = Array.from(new Set(foundKeywords.map(f => f.word)));
+            const penalty = Math.min(40, uniqueWords.length * 10);
+            spamScore -= penalty;
+            spamChecks.push({
+                label: "Absence de mots-clés spam (Gratuit, Urgent...)",
+                passed: false,
+                penalty,
+                category: catContent,
+                location: Array.from(new Set(foundKeywords.map(f => f.loc))).join(', '),
+                matches: uniqueWords,
+                remediation: `Retirez ou remplacez les termes détectés : ${uniqueWords.join(', ')}.`
+            });
+        } else {
+            spamChecks.push({ label: "Absence de mots-clés spam", passed: true, penalty: 10, category: catContent });
+        }
 
         // Alt text manquants
-        const missingAlt = /<img(?![^>]*\balt=)[^>]*>/i.test(content); // Basic check for img tag without alt
-        if (missingAlt) { spamScore -= 10; spamDetails.push("Attribut Alt manquant sur images (-10)"); }
+        const missingAlt = /<img(?![^>]*\balt=)[^>]*>/i.test(fullContent);
+        if (missingAlt) { spamScore -= 10; }
         spamChecks.push({
             label: "Texte alternatif sur les images",
             passed: !missingAlt,
@@ -178,131 +187,149 @@ export const complianceService = {
             remediation: "Ajoutez un texte alternatif (alt) à toutes vos images pour l'accessibilité."
         });
 
-        // Poids > 100ko
-        const estimatedSize = new TextEncoder().encode(content).length;
-        if (estimatedSize > 102400) { spamScore -= 15; spamDetails.push("Email trop lourd (>100ko) (-15)"); }
+        // Ratio Image / Texte
+        const imgCount = (fullContent.match(/<img/g) || []).length;
+        const textLength = fullContent.replace(/<[^>]*>/g, '').length;
+        const badRatio = imgCount > 2 && textLength < 500;
+        if (badRatio) { spamScore -= 20; }
         spamChecks.push({
-            label: "Poids du message optimisé (<100ko)",
-            passed: estimatedSize <= 102400,
-            penalty: 15,
+            label: "Ratio Texte/Image équilibré",
+            passed: !badRatio,
+            penalty: 20,
             category: catContent,
-            remediation: "Réduisez la taille de votre contenu ou de vos images embarquées."
+            remediation: "Ajoutez plus de texte. Un email avec trop d'images et peu de texte ressemble à du spam."
         });
 
-        // Mots pression
-        const pressureKeywords = ["cliquez ici", "profitez-en vite", "click here"];
-        const foundPressure = pressureKeywords.filter(kw => contentLower.includes(kw));
-        if (foundPressure.length > 0) {
-            const pressurePenalty = foundPressure.length * 5;
-            spamScore -= pressurePenalty;
-            spamDetails.push("Mots-clés de pression (-" + pressurePenalty + ")");
-        }
-        spamChecks.push({
-            label: "Pas de mots de pression (Cliquez ici...)",
-            passed: foundPressure.length === 0,
-            penalty: 5,
-            category: catContent,
-            remediation: foundPressure.length > 0
-                ? `Mots détectés : ${foundPressure.map(w => `"${w}"`).join(', ')}. Utilisez des appels à l'action plus doux.`
-                : "Utilisez des appels à l'action clairs mais moins agressifs que 'Cliquez ici'."
-        });
-
-        // Ponctuation excessive dans le corps
-        const textOnlyForSpam = content.replace(/<[^>]*>/g, ' ');
-        const excessivePuncContent = /[!?.]{3,}/.test(textOnlyForSpam);
-        if (excessivePuncContent) { spamScore -= 10; spamDetails.push("Ponctuation excessive dans le corps (-10)"); }
-        spamChecks.push({
-            label: "Pas de ponctuation excessive (!!!, ???)",
-            passed: !excessivePuncContent,
-            penalty: 10,
-            category: catContent,
-            remediation: "Évitez les séries de points d'exclamation ou d'interrogation qui alertent les filtres."
-        });
-
-        // Symboles monétaires répétés dans le corps
-        const excessiveMoneyContent = /[$€£]{3,}/.test(textOnlyForSpam);
-        if (excessiveMoneyContent) { spamScore -= 10; spamDetails.push("Symboles monétaires répétés dans le corps (-10)"); }
+        // Symboles monétaires dans le corps
+        const bodyMoneyMatch = fullContent.replace(/<[^>]*>/g, ' ').match(/[$€£]{3,}/g);
+        if (bodyMoneyMatch) { spamScore -= 10; }
         spamChecks.push({
             label: "Pas de symboles monétaires répétés ($$$, €€€)",
-            passed: !excessiveMoneyContent,
+            passed: !bodyMoneyMatch,
             penalty: 10,
             category: catContent,
-            remediation: "N'utilisez pas de symboles monétaires à la suite, cela ressemble à des promesses de gain suspectes."
-        });
-
-        // Emojis dans le corps
-        const textOnly = content.replace(/<[^>]*>/g, '').trim();
-        const contentEmojiCount = (content.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) || []).length;
-        const firstCharEmojiContent = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(textOnly);
-        const emojiAbuseContent = contentEmojiCount > 5 || firstCharEmojiContent;
-        if (emojiAbuseContent) { spamScore -= 10; spamDetails.push("Abus d'emojis dans le corps (-10)"); }
-        spamChecks.push({
-            label: "Usage modéré d'emojis (< 5, pas en début)",
-            passed: !emojiAbuseContent,
-            penalty: 10,
-            category: catContent,
-            remediation: "Utilisez les emojis avec parcimonie (max 5) et ne commencez pas votre message par un emoji."
+            matches: bodyMoneyMatch ? Array.from(new Set(bodyMoneyMatch)) : undefined,
+            remediation: "N'utilisez pas de symboles monétaires à la suite dans le message."
         });
 
         // --- 3. Technique et Expéditeur ---
         const catTech = "Technique et Expéditeur";
 
+        // Raccourcisseurs URL
+        const shortenerMatch = fullContent.match(/bit\.ly|tinyurl\.com|goo\.gl|ow\.ly/g);
+        if (shortenerMatch) { spamScore -= 25; }
+        spamChecks.push({
+            label: "Pas de raccourcisseurs d'URL (Bitly...)",
+            passed: !shortenerMatch,
+            penalty: 25,
+            category: catTech,
+            matches: shortenerMatch ? Array.from(new Set(shortenerMatch)) : undefined,
+            remediation: "Utilisez vos liens complets. Les raccourcisseurs sont risqués."
+        });
+
         // No-Reply
         const isNoReply = brand?.sender_email ? /no-reply|noreply|ne-pas-repondre/i.test(brand.sender_email) : false;
-        if (isNoReply) { spamScore -= 10; spamDetails.push("Adresse No-Reply détectée (-10)"); }
+        if (isNoReply) { spamScore -= 10; }
         spamChecks.push({
-            label: "Pas d'adresse d'expédition 'No-Reply'",
+            label: "Pas d'adresse 'No-Reply'",
             passed: !isNoReply,
             penalty: 10,
             category: catTech,
             remediation: "Utilisez une adresse nominative (ex: prenom@...) pour humaniser l'envoi."
         });
 
+        // Poids > 100ko
+        const estimatedSize = new TextEncoder().encode(fullContent).length;
+        if (estimatedSize > 102400) { spamScore -= 15; }
+        spamChecks.push({
+            label: "Poids du message optimisé (<100ko)",
+            passed: estimatedSize <= 102400,
+            penalty: 15,
+            category: catTech,
+            remediation: "Réduisez la taille de votre contenu ou de vos images."
+        });
+
         // Variable mal fermée
-        const brokenVar = /{{[^{}]*$|{{[^{}]*[^}]}$/.test(content); // Very basic check for unclosed braces
-        if (brokenVar) { spamScore -= 20; spamDetails.push("Variable de personnalisation mal fermée (-20)"); }
+        const brokenVar = /{{[^{}]*$|{{[^{}]*[^}]}$/.test(fullContent);
+        if (brokenVar) { spamScore -= 20; }
         spamChecks.push({
             label: "Variables de personnalisation valides",
             passed: !brokenVar,
             penalty: 20,
             category: catTech,
-            remediation: "Vérifiez vos accolades {{variable}}. Une variable cassée peut afficher du code brut."
+            remediation: "Vérifiez vos accolades {{variable}}. Une variable cassée peut s'afficher brutalement."
         });
 
         // --- 4. Mise en forme et Lisibilité ---
         const catDesign = "Mise en forme et Lisibilité";
 
-        // Police petite (< 10px) (Regex approximation in style tags)
-        const smallFont = /font-size:\s*[1-9]px/i.test(content);
-        if (smallFont) { spamScore -= 10; spamDetails.push("Police trop petite (<10px) (-10)"); }
+        // Ponctuation excessive dans le contenu
+        const contentPuncMatches: { word: string; loc: string }[] = [];
+        components.filter(c => c.id !== 'subject').forEach(comp => {
+            const cleanText = comp.content.replace(/<[^>]*>/g, ' ');
+            const matches = cleanText.match(/[!?.]{3,}/g);
+            if (matches) {
+                matches.forEach(m => contentPuncMatches.push({ word: m, loc: comp.name }));
+            }
+        });
+
+        if (contentPuncMatches.length > 0) {
+            spamScore -= 10;
+            spamChecks.push({
+                label: "Ponctuation modérée",
+                passed: false,
+                penalty: 10,
+                category: catDesign,
+                location: Array.from(new Set(contentPuncMatches.map(f => f.loc))).join(', '),
+                matches: Array.from(new Set(contentPuncMatches.map(f => f.word))),
+                remediation: "Évitez les séries de points d'exclamation ou d'interrogation."
+            });
+        } else {
+            spamChecks.push({ label: "Ponctuation modérée", passed: true, penalty: 10, category: catDesign });
+        }
+
+        // Emojis (Abus)
+        const contentEmojiMatches: { word: string; loc: string }[] = [];
+        components.forEach(comp => {
+            const regex = /[\u{1F300}-\u{1F9FF}]/gu;
+            const matches = comp.content.match(regex);
+            if (matches && matches.length > 3) {
+                contentEmojiMatches.push({ word: `${matches.length} emojis`, loc: comp.name });
+            }
+        });
+
+        if (contentEmojiMatches.length > 0) {
+            spamScore -= 5;
+            spamChecks.push({
+                label: "Usage modéré d'emojis",
+                passed: false,
+                penalty: 5,
+                category: catDesign,
+                location: Array.from(new Set(contentEmojiMatches.map(f => f.loc))).join(', '),
+                remediation: "Utilisez les emojis avec parcimonie pour rester pro."
+            });
+        }
+
+        // Police petite (< 10px)
+        const smallFont = /font-size:\s*[1-9]px/i.test(fullContent);
+        if (smallFont) { spamScore -= 10; }
         spamChecks.push({
             label: "Taille de police lisible (>= 10px)",
             passed: !smallFont,
             penalty: 10,
             category: catDesign,
-            remediation: "Augmentez la taille de votre police (min 14px recommandé) pour la lisibilité."
+            remediation: "Augmentez la taille de votre police (min 14px recommandé)."
         });
 
-        // Mots espacés (G.R.A.T.U.I.T)
-        const spacedWords = /\b[A-Z]\s[A-Z]\s[A-Z]\s[A-Z]\b|\b[A-Z]\.[A-Z]\.[A-Z]\.[A-Z]\b/.test(subject);
-        if (spacedWords) { spamScore -= 20; spamDetails.push("Mots espacés ou avec points (-20)"); }
-        spamChecks.push({
-            label: "Pas de mots espacés (G.R.A.T.U.I.T)",
-            passed: !spacedWords,
-            penalty: 20,
-            category: catDesign,
-            remediation: "N'essayez pas de contourner les filtres en espaçant les lettres, c'est contre-productif."
-        });
-
-        // Couleur de texte trop claire (Invisible/Low contrast)
-        const lowContrast = /color\s*:\s*(white|#fff(fff)?|#f[0-9a-f]{2,5}|#e[0-9a-f]{2,5}|rgb\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5]\s*\))/i.test(content);
-        if (lowContrast) { spamScore -= 15; spamDetails.push("Couleur de texte trop claire (-15)"); }
+        // Couleur de texte trop claire (Low contrast)
+        const lowContrast = /color\s*:\s*(white|#fff(fff)?|#f[0-9a-f]{2,5}|#e[0-9a-f]{2,5}|rgb\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5]\s*\))/i.test(fullContent);
+        if (lowContrast) { spamScore -= 15; }
         spamChecks.push({
             label: "Contraste du texte suffisant",
             passed: !lowContrast,
             penalty: 15,
             category: catDesign,
-            remediation: "Assurez-vous que votre texte est bien lisible (évitez le blanc ou gris clair sur fond blanc)."
+            remediation: "Assurez-vous que votre texte est bien lisible (évitez le blanc ou gris trop clair)."
         });
 
         // Cap score min 0
@@ -320,8 +347,6 @@ export const complianceService = {
             spamMsg = `Score critique (${spamScore}/100). Risque élevé de spam.`;
         }
 
-
-
         // Determine overall status
         let overall: 'success' | 'warning' | 'error' = 'success';
         if (mentionsStatus === 'error' || unsubStatus === 'error' || spamStatus === 'error') {
@@ -334,15 +359,13 @@ export const complianceService = {
             mentions: { status: mentionsStatus, message: mentionsMessage },
             unsubscribe: { status: unsubStatus, message: unsubMessage },
             ai_marker: { status: aiStatus, message: aiMessage },
-            spam_score: { score: spamScore, status: spamStatus, message: spamMsg, details: spamDetails, spam_checks: spamChecks },
+            spam_score: { score: spamScore, status: spamStatus, message: spamMsg, spam_checks: spamChecks },
             overall_status: overall
         };
     },
 
     /**
      * Génère un fichier CSV pour le registre des traitements.
-     * @param logs Liste des logs de conformité
-     * @param brandName Nom de la marque (optionnel) pour remplacer l'ID
      */
     exportRegistryToCSV(logs: ComplianceLog[], brandName?: string): string {
         const headers = ["ID", "Date d'envoi", "Marque", "Campagne (Sujet)", "Destinataires", "Statut Conformité", "Détails Audit"];
@@ -364,22 +387,12 @@ export const complianceService = {
                 if (snapshot.mentions?.status !== 'success') issues.push(`Mentions: ${snapshot.mentions?.message}`);
                 if (snapshot.unsubscribe?.status !== 'success') issues.push(`Désabonnement: ${snapshot.unsubscribe?.message}`);
                 if (snapshot.ai_marker?.status === 'warning') issues.push(`IA: ${snapshot.ai_marker?.message}`);
-                // Spam details (include all checks if available)
-                // Spam details (include all checks if available)
+
                 if (snapshot.spam_score?.spam_checks && snapshot.spam_score?.spam_checks.length > 0) {
                     const checkSummary = snapshot.spam_score.spam_checks.map((c: any) =>
                         `${c.passed ? '✅' : '❌'} ${c.label}` + (!c.passed ? ` (-${c.penalty})` : '')
                     ).join(', ');
                     issues.push(`Délivrabilité (${snapshot.spam_score.score}/100): ${checkSummary}`);
-                } else if (snapshot.spam_score?.status !== 'success') {
-                    // Fallback to old format
-                    let spamMsg = `Spam: ${snapshot.spam_score?.message} (${snapshot.spam_score?.score}/100)`;
-                    if (snapshot.spam_score?.details && snapshot.spam_score.details.length > 0) {
-                        spamMsg += ` [${snapshot.spam_score.details.join(', ')}]`;
-                    }
-                    issues.push(spamMsg);
-                } else {
-                    issues.push(`Délivrabilité: Excellent (${snapshot.spam_score?.score}/100)`);
                 }
 
                 details = issues.join(" | ");
