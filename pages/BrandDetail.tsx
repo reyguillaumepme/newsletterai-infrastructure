@@ -145,8 +145,12 @@ const BrandDetail: React.FC = () => {
           });
         }
         setBrandSlug(data.slug || "");
+
+        // Initialize logo_alt if empty to make it editable
+        if (!data.logo_alt && data.brand_name) {
+          setBrand(prev => prev ? { ...prev, logo_alt: `image du logo de la marque : ${data.brand_name}` } : null);
+        }
       }
-      setIsPageLoading(false);
       setIsPageLoading(false);
     };
     loadBrand();
@@ -468,7 +472,7 @@ const BrandDetail: React.FC = () => {
                       <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
                     </div>
                     {/* Logo Alt Text Field */}
-                    <div className="space-y-2 mt-4 max-w-[200px]">
+                    <div className="space-y-2 mt-4">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Texte alternatif (Logo)</label>
                       <input
                         type="text"
