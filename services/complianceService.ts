@@ -206,6 +206,42 @@ export const complianceService = {
                 : "Utilisez des appels à l'action clairs mais moins agressifs que 'Cliquez ici'."
         });
 
+        // Ponctuation excessive dans le corps
+        const excessivePuncContent = /[!?.]{3,}/.test(content);
+        if (excessivePuncContent) { spamScore -= 10; spamDetails.push("Ponctuation excessive dans le corps (-10)"); }
+        spamChecks.push({
+            label: "Pas de ponctuation excessive (!!!, ???)",
+            passed: !excessivePuncContent,
+            penalty: 10,
+            category: catContent,
+            remediation: "Évitez les séries de points d'exclamation ou d'interrogation qui alertent les filtres."
+        });
+
+        // Symboles monétaires répétés dans le corps
+        const excessiveMoneyContent = /[$€£]{3,}/.test(content);
+        if (excessiveMoneyContent) { spamScore -= 10; spamDetails.push("Symboles monétaires répétés dans le corps (-10)"); }
+        spamChecks.push({
+            label: "Pas de symboles monétaires répétés ($$$, €€€)",
+            passed: !excessiveMoneyContent,
+            penalty: 10,
+            category: catContent,
+            remediation: "N'utilisez pas de symboles monétaires à la suite, cela ressemble à des promesses de gain suspectes."
+        });
+
+        // Emojis dans le corps
+        const textOnly = content.replace(/<[^>]*>/g, '').trim();
+        const contentEmojiCount = (content.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) || []).length;
+        const firstCharEmojiContent = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(textOnly);
+        const emojiAbuseContent = contentEmojiCount > 5 || firstCharEmojiContent;
+        if (emojiAbuseContent) { spamScore -= 10; spamDetails.push("Abus d'emojis dans le corps (-10)"); }
+        spamChecks.push({
+            label: "Usage modéré d'emojis (< 5, pas en début)",
+            passed: !emojiAbuseContent,
+            penalty: 10,
+            category: catContent,
+            remediation: "Utilisez les emojis avec parcimonie (max 5) et ne commencez pas votre message par un emoji."
+        });
+
         // --- 3. Technique et Expéditeur ---
         const catTech = "Technique et Expéditeur";
 
