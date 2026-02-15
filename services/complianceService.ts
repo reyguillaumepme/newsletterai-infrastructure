@@ -314,26 +314,53 @@ export const complianceService = {
         }
 
         // Police petite (< 10px)
-        const smallFont = /font-size:\s*[1-9]px/i.test(fullContent);
-        if (smallFont) { spamScore -= 10; }
-        spamChecks.push({
-            label: "Taille de police lisible (>= 10px)",
-            passed: !smallFont,
-            penalty: 10,
-            category: catDesign,
-            remediation: "Augmentez la taille de votre police (min 14px recommandé)."
+        const smallFontMatches: { loc: string; match: string }[] = [];
+        components.filter(c => c.isHtml).forEach(comp => {
+            const matches = comp.content.match(/font-size:\s*[1-9]px/gi);
+            if (matches) {
+                smallFontMatches.push({ loc: comp.name, match: matches[0] });
+            }
         });
 
+        if (smallFontMatches.length > 0) {
+            spamScore -= 10;
+            spamChecks.push({
+                label: "Taille de police lisible (>= 10px)",
+                passed: false,
+                penalty: 10,
+                category: catDesign,
+                location: Array.from(new Set(smallFontMatches.map(f => f.loc))).join(', '),
+                matches: Array.from(new Set(smallFontMatches.map(f => f.match))),
+                remediation: "Augmentez la taille de votre police (min 14px recommandé)."
+            });
+        } else {
+            spamChecks.push({ label: "Taille de police lisible", passed: true, penalty: 10, category: catDesign });
+        }
+
         // Couleur de texte trop claire (Low contrast)
-        const lowContrast = /color\s*:\s*(white|#fff(fff)?|#f[0-9a-f]{2,5}|#e[0-9a-f]{2,5}|rgb\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5]\s*\))/i.test(fullContent);
-        if (lowContrast) { spamScore -= 15; }
-        spamChecks.push({
-            label: "Contraste du texte suffisant",
-            passed: !lowContrast,
-            penalty: 15,
-            category: catDesign,
-            remediation: "Assurez-vous que votre texte est bien lisible (évitez le blanc ou gris trop clair)."
+        const contrastRegex = /color\s*:\s*(white|#fff(fff)?|#f[0-9a-f]{2,5}|#e[0-9a-f]{2,5}|rgb\(\s*25[0-5]\s*,\s*25[0-5]\s*,\s*25[0-5]\s*\))/gi;
+        const lowContrastMatches: { loc: string; match: string }[] = [];
+        components.filter(c => c.isHtml).forEach(comp => {
+            const matches = comp.content.match(contrastRegex);
+            if (matches) {
+                lowContrastMatches.push({ loc: comp.name, match: matches[0] });
+            }
         });
+
+        if (lowContrastMatches.length > 0) {
+            spamScore -= 15;
+            spamChecks.push({
+                label: "Contraste du texte suffisant",
+                passed: false,
+                penalty: 15,
+                category: catDesign,
+                location: Array.from(new Set(lowContrastMatches.map(f => f.loc))).join(', '),
+                matches: Array.from(new Set(lowContrastMatches.map(f => f.match))),
+                remediation: "Assurez-vous que votre texte est bien lisible (évitez le blanc ou gris trop clair)."
+            });
+        } else {
+            spamChecks.push({ label: "Contraste du texte suffisant", passed: true, penalty: 15, category: catDesign });
+        }
 
         // Cap score min 0
         spamScore = Math.max(0, spamScore);
